@@ -5,86 +5,46 @@
     <title>Sistema RA con Marcadores Independientes</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
-    <style>
-        .search-container {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            right: 10px;
-            z-index: 999;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 5px;
-            display: flex;
-        }
-        #productSearch {
-            width: 80%;
-            padding: 8px;
-            border-radius: 4px;
-            border: none;
-        }
-        #searchBtn {
-            width: 20%;
-            padding: 8px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            margin-left: 5px;
-        }
-    </style>
+    <script>
+        AFRAME.registerComponent('marker-handler', {
+            init: function () {
+                const marker = this.el;
+                marker.addEventListener('markerFound', () => {
+                    const scene1 = document.getElementById('escena1');
+                    const scene2 = document.getElementById('escena2');
+                    if (marker.id === 'marker1') {
+                        scene1.setAttribute('visible', 'true');
+                        scene2.setAttribute('visible', 'false');
+                    } else if (marker.id === 'marker2') {
+                        scene1.setAttribute('visible', 'false');
+                        scene2.setAttribute('visible', 'true');
+                    }
+                });
+
+                marker.addEventListener('markerLost', () => {
+                    const scene1 = document.getElementById('escena1');
+                    const scene2 = document.getElementById('escena2');
+                    scene1.setAttribute('visible', 'false');
+                    scene2.setAttribute('visible', 'false');
+                });
+            }
+        });
+    </script>
 </head>
 <body style="margin: 0; overflow: hidden;">
     <a-scene embedded arjs>
-
-        <!-- Escena 1 -->
-        <a-marker type="pattern" url="zona1.patt" id="marker-scene1">
-            <a-entity id="escena1">
-                <a-box position="0 0.5 0" color="red"></a-box>
-            </a-entity>
+        <a-marker id="marker1" type="pattern" url="zona1.patt" marker-handler>
+            <a-entity id="escena1" gltf-model="#modelo1" position="0 0 0" visible="false"></a-entity>
         </a-marker>
 
-        <!-- Escena 2 -->
-        <a-marker type="pattern" url="zona2.patt" id="marker-scene2">
-            <a-entity id="escena2">
-                <a-sphere position="0 0.5 0" radius="0.5" color="blue"></a-sphere>
-            </a-entity>
+        <a-marker id="marker2" type="pattern" url="zona2.patt" marker-handler>
+            <a-entity id="escena2" gltf-model="#modelo2" position="0 0 0" visible="false"></a-entity>
         </a-marker>
 
-        <!-- Cámara -->
+        <a-asset-item id="modelo1" src="modelo1.gltf"></a-asset-item>
+        <a-asset-item id="modelo2" src="modelo2.gltf"></a-asset-item>
+
         <a-entity camera></a-entity>
     </a-scene>
-
-    <script>
-        const escena1 = document.querySelector('#escena1');
-        const escena2 = document.querySelector('#escena2');
-
-        const marker1 = document.querySelector('#marker-scene1');
-        const marker2 = document.querySelector('#marker-scene2');
-
-        // Desactivar todas las escenas inicialmente
-        escena1.setAttribute('visible', false);
-        escena2.setAttribute('visible', false);
-
-        marker1.addEventListener('markerFound', () => {
-            escena1.setAttribute('visible', true);
-            escena2.setAttribute('visible', false);
-        });
-
-        marker2.addEventListener('markerFound', () => {
-            escena1.setAttribute('visible', false);
-            escena2.setAttribute('visible', true);
-        });
-
-        // Opcional: ocultar escenas si no hay marcador
-        marker1.addEventListener('markerLost', () => {
-            escena1.setAttribute('visible', false);
-        });
-
-        marker2.addEventListener('markerLost', () => {
-            escena2.setAttribute('visible', false);
-        });
-    </script>
 </body>
 </html>
