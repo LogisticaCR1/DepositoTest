@@ -1,50 +1,17 @@
-<a-scene embedded arjs>
-  <!-- Cubo global que cambia -->
-  <a-box id="cube" position="0 0.5 0" visible="false"></a-box>
+<body style="margin: 0; overflow: hidden;">
+  <a-scene embedded arjs>
+    
+    <!-- Marcador 1 -->
+    <a-marker type="pattern" url="marker1.patt" id="marker1">
+      <a-box position="0 0.5 0" material="color: red;"></a-box>
+    </a-marker>
 
-  <!-- Marker 1 -->
-  <a-marker id="marker1" type="pattern" url="zona1.patt"></a-marker>
+    <!-- Marcador 2 -->
+    <a-marker type="pattern" url="marker2.patt" id="marker2">
+      <a-box position="0 0.5 0" material="color: blue;"></a-box>
+    </a-marker>
 
-  <!-- Marker 2 -->
-  <a-marker id="marker2" type="pattern" url="zona1.patt"></a-marker>
-
-  <a-entity camera></a-entity>
-</a-scene>
-
-<script>
-  const cube = document.getElementById('cube');
-  const marker1 = document.getElementById('marker1');
-  const marker2 = document.getElementById('marker2');
-
-  // Función para activar escena 1
-  function activateScene1() {
-    cube.setAttribute('material', 'color', 'red');
-    cube.object3D.position.set(0, 0.5, 0);
-    cube.setAttribute('visible', true);
-  }
-
-  // Función para activar escena 2
-  function activateScene2() {
-    cube.setAttribute('material', 'color', 'blue');
-    cube.object3D.position.set(0, 0.5, 0);
-    cube.setAttribute('visible', true);
-  }
-
-  // Eventos de detección de marcadores
-  marker1.addEventListener('markerFound', () => {
-    activateScene1();
-  });
-
-  marker2.addEventListener('markerFound', () => {
-    activateScene2();
-  });
-
-  // Cuando se pierde el marcador, ocultar cubo
-  marker1.addEventListener('markerLost', () => {
-    cube.setAttribute('visible', false);
-  });
-
-  marker2.addEventListener('markerLost', () => {
-    cube.setAttribute('visible', false);
-  });
-</script>
+    <!-- Cámara AR -->
+    <a-entity camera></a-entity>
+  </a-scene>
+</body>
