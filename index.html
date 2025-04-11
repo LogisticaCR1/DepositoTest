@@ -1,17 +1,56 @@
-<body style="margin: 0; overflow: hidden;">
-  <a-scene embedded arjs>
-    
-    <!-- Marcador 1 -->
-    <a-marker type="pattern" url="marker1.patt" id="marker1">
-      <a-box position="0 0.5 0" material="color: red;"></a-box>
-    </a-marker>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>AR.js - Cambiar escena por .patt</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.rawgit.com/jeromeetienne/ar.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <a-scene embedded arjs>
+      <!-- MARCADOR 1 -->
+      <a-marker id="marker1" type="pattern" url="zona1.patt"></a-marker>
 
-    <!-- Marcador 2 -->
-    <a-marker type="pattern" url="marker2.patt" id="marker2">
-      <a-box position="0 0.5 0" material="color: blue;"></a-box>
-    </a-marker>
+      <!-- MARCADOR 2 -->
+      <a-marker id="marker2" type="pattern" url="zona2.patt"></a-marker>
 
-    <!-- Cámara AR -->
-    <a-entity camera></a-entity>
-  </a-scene>
-</body>
+      <!-- Cubo controlado por JS -->
+      <a-box id="cube" visible="false" position="0 0.5 0" color="red"></a-box>
+
+      <!-- Cámara -->
+      <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+      const marker1 = document.querySelector('#marker1');
+      const marker2 = document.querySelector('#marker2');
+      const cube = document.querySelector('#cube');
+
+      // Función para cambiar escena
+      function activarEscena(color) {
+        cube.setAttribute('visible', true);
+        cube.setAttribute('color', color);
+      }
+
+      function ocultarEscena() {
+        cube.setAttribute('visible', false);
+      }
+
+      // Eventos para marker1
+      marker1.addEventListener('markerFound', () => {
+        activarEscena('red');
+      });
+      marker1.addEventListener('markerLost', () => {
+        ocultarEscena();
+      });
+
+      // Eventos para marker2
+      marker2.addEventListener('markerFound', () => {
+        activarEscena('blue');
+      });
+      marker2.addEventListener('markerLost', () => {
+        ocultarEscena();
+      });
+    </script>
+  </body>
+</html>
