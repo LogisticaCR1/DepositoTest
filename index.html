@@ -108,6 +108,37 @@
             background: rgba(76, 175, 80, 0.6);
             border-color: rgba(76, 175, 80, 0.8);
         }
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .loading-spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        .loading-text {
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
         
         /* Media query para dispositivos móviles en orientación vertical */
         @media (max-width: 767px) and (orientation: portrait) {
@@ -158,6 +189,12 @@
         <button id="grupo3Button" class="scene-button">Grupo 3</button>
     </div>
     
+    <!-- Overlay de carga -->
+    <div id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Cambiando cámara...</div>
+    </div>
+    
     <!-- Una sola escena A-Frame -->
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;" vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;">
         
@@ -203,12 +240,15 @@
         const grupo3 = document.getElementById('grupo3');
         const cameraButton = document.getElementById('cameraButton');
         const cameraSelector = document.getElementById('cameraSelector');
+        const loadingOverlay = document.getElementById('loadingOverlay');
         
         // Variables para la gestión de cámaras
         let videoDevices = [];
         let currentDeviceId = '';
         let arSystem = null;
         let cameraMenuOpen = false;
+        let activeStream = null;
+        let sceneReady = false;
         
         // Configuración de grupos
         const grupos = [
@@ -236,9 +276,26 @@
             statusIndicator.textContent = `Mostrando: ${grupos[grupoActualIndex].nombre}`;
         }
         
+        // Función para detener todos los tracks del stream activo
+        function stopActiveStream() {
+            if (activeStream) {
+                activeStream.getTracks().forEach(track => {
+                    track.stop();
+                });
+                activeStream = null;
+            }
+        }
+        
         // Función para enumerar dispositivos de cámara disponibles
         async function enumerarDispositivosDeCamara() {
             try {
+                // Forzar actualización de la lista de dispositivos
+                await navigator.mediaDevices.getUserMedia({ audio: false, video: true })
+                    .then(stream => {
+                        // Detener inmediatamente el stream que usamos solo para forzar el permiso
+                        stream.getTracks().forEach(track => track.stop());
+                    });
+                
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 
                 // Filtrar solo los dispositivos de video (cámaras)
@@ -267,13 +324,14 @@
                     let cameraName = device.label || `Cámara ${index + 1}`;
                     
                     // Intentar identificar el tipo de cámara (frontal, trasera, etc.)
-                    if (cameraName.toLowerCase().includes('front')) {
+                    const lowerName = cameraName.toLowerCase();
+                    if (lowerName.includes('front')) {
                         cameraName += ' (Frontal)';
-                    } else if (cameraName.toLowerCase().includes('back') || cameraName.toLowerCase().includes('rear')) {
+                    } else if (lowerName.includes('back') || lowerName.includes('rear')) {
                         cameraName += ' (Trasera)';
-                    } else if (cameraName.toLowerCase().includes('wide') || cameraName.toLowerCase().includes('ultra')) {
+                    } else if (lowerName.includes('wide') || lowerName.includes('ultra')) {
                         cameraName += ' (Gran Angular)';
-                    } else if (cameraName.toLowerCase().includes('tele')) {
+                    } else if (lowerName.includes('tele')) {
                         cameraName += ' (Telefoto)';
                     }
                     
@@ -281,7 +339,9 @@
                     option.dataset.id = device.deviceId;
                     
                     option.addEventListener('click', () => {
-                        cambiarCamara(device.deviceId);
+                        if (device.deviceId !== currentDeviceId) {
+                            cambiarCamara(device.deviceId);
+                        }
                         cerrarSelectorDeCamara();
                     });
                     
@@ -297,6 +357,12 @@
         // Función para cambiar la cámara activa
         async function cambiarCamara(deviceId) {
             try {
+                if (deviceId === currentDeviceId) return;
+                
+                // Mostrar overlay de carga
+                loadingOverlay.style.display = 'flex';
+                
+                // Actualizar ID del dispositivo actual
                 currentDeviceId = deviceId;
                 
                 // Actualizar la clase active en las opciones de cámara
@@ -316,40 +382,83 @@
                 }
                 
                 if (arSystem && arSystem.arToolkitSource) {
-                    // Detener la cámara actual
-                    arSystem.arToolkitSource.domElement.srcObject.getTracks().forEach(track => track.stop());
-                    
-                    // Configurar la nueva cámara
-                    const constraints = {
-                        video: {
-                            deviceId: { exact: deviceId }
+                    try {
+                        // Detener la cámara actual si existe
+                        stopActiveStream();
+                        
+                        // Si el elemento de video existe, detener su reproducción
+                        if (arSystem.arToolkitSource.domElement) {
+                            arSystem.arToolkitSource.domElement.pause();
+                            arSystem.arToolkitSource.domElement.srcObject = null;
                         }
-                    };
-                    
-                    // Solicitar acceso a la nueva cámara
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    
-                    // Asignar la nueva cámara al sistema AR.js
-                    arSystem.arToolkitSource.domElement.srcObject = stream;
-                    
-                    // Reiniciar el sistema AR
-                    arSystem.arToolkitSource.onResize();
-                    arSystem.arToolkitSource.copySizeTo();
-                    
-                    // Buscar el nombre de la cámara seleccionada
-                    const selectedDevice = videoDevices.find(device => device.deviceId === deviceId);
-                    const cameraName = selectedDevice ? (selectedDevice.label || 'Cámara seleccionada') : 'Cámara seleccionada';
-                    
-                    statusIndicator.textContent = `Cambiado a: ${cameraName}`;
-                    
-                    // Esperar un momento y luego actualizar el estado con el grupo actual
-                    setTimeout(() => {
-                        statusIndicator.textContent = `Buscando marcador... (${grupos[grupoActualIndex].nombre})`;
-                    }, 2000);
+                        
+                        // Configurar la nueva cámara
+                        const constraints = {
+                            audio: false,
+                            video: {
+                                deviceId: { exact: deviceId },
+                                facingMode: 'environment',
+                                width: { ideal: 1280 },
+                                height: { ideal: 720 }
+                            }
+                        };
+                        
+                        // Solicitar acceso a la nueva cámara
+                        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                        activeStream = stream;
+                        
+                        // Asignar la nueva cámara al sistema AR.js
+                        arSystem.arToolkitSource.domElement.srcObject = stream;
+                        arSystem.arToolkitSource.domElement.play();
+                        
+                        // Reiniciar el sistema AR
+                        arSystem.arToolkitSource.onResize();
+                        arSystem.arToolkitSource.copySizeTo();
+                        
+                        // Buscar el nombre de la cámara seleccionada
+                        const selectedDevice = videoDevices.find(device => device.deviceId === deviceId);
+                        const cameraName = selectedDevice ? (selectedDevice.label || 'Cámara seleccionada') : 'Cámara seleccionada';
+                        
+                        statusIndicator.textContent = `Cambiado a: ${cameraName}`;
+                        
+                        // Esperar un momento y luego actualizar el estado con el grupo actual
+                        setTimeout(() => {
+                            statusIndicator.textContent = `Buscando marcador... (${grupos[grupoActualIndex].nombre})`;
+                            // Ocultar overlay de carga
+                            loadingOverlay.style.display = 'none';
+                        }, 2000);
+                        
+                    } catch (streamError) {
+                        console.error('Error al obtener stream de la cámara:', streamError);
+                        
+                        // Si hay un error NotReadableError, vamos a intentar recargar toda la página
+                        if (streamError.name === 'NotReadableError') {
+                            statusIndicator.textContent = 'Error de cámara. Intentando solucionar...';
+                            
+                            // Mantenemos el ID de la cámara seleccionada en sessionStorage
+                            sessionStorage.setItem('selectedCameraId', deviceId);
+                            
+                            // Recargamos la página después de un breve retraso
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                            return;
+                        }
+                        
+                        // Para otros errores, mostramos el mensaje y ocultamos el overlay
+                        statusIndicator.textContent = `Error al cambiar cámara: ${streamError.message}`;
+                        loadingOverlay.style.display = 'none';
+                    }
+                } else {
+                    console.error('Sistema AR no inicializado correctamente');
+                    statusIndicator.textContent = 'Error: Sistema AR no disponible';
+                    loadingOverlay.style.display = 'none';
                 }
+                
             } catch (error) {
-                console.error('Error al cambiar la cámara:', error);
+                console.error('Error general al cambiar la cámara:', error);
                 statusIndicator.textContent = 'Error al cambiar la cámara';
+                loadingOverlay.style.display = 'none';
             }
         }
         
@@ -402,12 +511,37 @@
         
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
+            // Comprobar si hay una cámara seleccionada previamente
+            const savedCameraId = sessionStorage.getItem('selectedCameraId');
+            
             // Solicitar permisos de cámara y enumerar dispositivos disponibles
             navigator.mediaDevices.getUserMedia({ video: true })
-                .then(() => {
+                .then(stream => {
+                    // Guardar el stream inicial
+                    activeStream = stream;
+                    
+                    // Si hay una cámara guardada, intentamos cambiar a ella después de un momento
+                    if (savedCameraId) {
+                        // Eliminar de sessionStorage para evitar bucles si falla
+                        sessionStorage.removeItem('selectedCameraId');
+                        
+                        // Esperar a que la escena AR se inicialice completamente
+                        setTimeout(() => {
+                            cambiarCamara(savedCameraId);
+                        }, 2000);
+                    }
+                    
                     // Enumerar dispositivos después de obtener permisos
                     setTimeout(() => {
                         enumerarDispositivosDeCamara();
+                        
+                        // Si no había una cámara guardada, actualizamos el ID actual
+                        if (!savedCameraId && stream.getVideoTracks().length > 0) {
+                            const track = stream.getVideoTracks()[0];
+                            if (track.getSettings && track.getSettings().deviceId) {
+                                currentDeviceId = track.getSettings().deviceId;
+                            }
+                        }
                     }, 1000);
                 })
                 .catch(error => {
@@ -417,6 +551,16 @@
             
             // Empezar con el primer grupo
             cambiarAGrupo(0);
+            
+            // Marcar que la escena está lista
+            setTimeout(() => {
+                sceneReady = true;
+            }, 2000);
+        });
+        
+        // Manejar cuando la página se va a descargar para limpiar recursos
+        window.addEventListener('beforeunload', () => {
+            stopActiveStream();
         });
     </script>
 </body>
