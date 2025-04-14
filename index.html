@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Sistema AR - Objetos Flotantes en Pantalla</title>
+    <title>Sistema AR - Grupos de Cubos</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -55,8 +55,6 @@
             font-family: Arial, sans-serif;
             font-size: 16px;
         }
-        
-        /* Media query específico para celulares en orientación vertical */
         @media (max-width: 767px) and (orientation: portrait) {
             .button-container {
                 flex-direction: column;
@@ -72,274 +70,95 @@
                 margin: 5px auto;
             }
         }
-        
-        /* Botón para fijar objetos a la pantalla */
-        .fix-button {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: 2px solid white;
-            padding: 8px 12px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            z-index: 999;
-        }
-        .fixed {
-            background: rgba(33, 150, 243, 0.8);
-        }
     </style>
 </head>
 <body>
-    <!-- Indicador de estado -->
     <div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
-    
-    <!-- Botón para fijar objetos -->
-    <button id="fixButton" class="fix-button">FIJAR A PANTALLA</button>
-    
-    <!-- Botones para cambiar escenas -->
+
     <div class="button-container">
         <button id="grupo1Button" class="scene-button active-button">Grupo 1</button>
         <button id="grupo2Button" class="scene-button">Grupo 2</button>
         <button id="grupo3Button" class="scene-button">Grupo 3</button>
     </div>
-    
-    <!-- Una sola escena A-Frame -->
+
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;" vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;">
-        
-        <!-- Un solo marcador con múltiples grupos de cubos -->
+
+        <!-- Placeholder para objetos persistentes -->
+        <a-entity id="contenedorGrupos"></a-entity>
+
+        <!-- Marcador AR -->
         <a-marker id="miMarcador" type="pattern" url="zona1.patt" raycaster="objects: .clickable" emitevents="true">
-            
-            <!-- Grupo 1: Dos cubos (rojo y azul) -->
             <a-entity id="grupo1" visible="true">
                 <a-box position="0 0.5 0" rotation="0 0 0" scale="1 1 1" material="color: red; opacity: 0.8"></a-box>
                 <a-box position="1.5 0.5 0" rotation="0 45 0" scale="0.7 0.7 0.7" material="color: blue; opacity: 0.8"></a-box>
             </a-entity>
-            
-            <!-- Grupo 2: Tres cubos en formación triangular -->
             <a-entity id="grupo2" visible="false">
                 <a-box position="0 0.5 0" rotation="0 0 0" scale="0.8 0.8 0.8" material="color: green; opacity: 0.8"></a-box>
                 <a-box position="1 0.5 1" rotation="0 45 0" scale="0.8 0.8 0.8" material="color: yellow; opacity: 0.8"></a-box>
                 <a-box position="-1 0.5 1" rotation="0 -45 0" scale="0.8 0.8 0.8" material="color: purple; opacity: 0.8"></a-box>
             </a-entity>
-            
-            <!-- Grupo 3: Formación de torre -->
             <a-entity id="grupo3" visible="false">
                 <a-box position="0 0.25 0" rotation="0 0 0" scale="1.2 0.5 1.2" material="color: orange; opacity: 0.8"></a-box>
                 <a-box position="0 0.75 0" rotation="0 45 0" scale="0.9 0.5 0.9" material="color: cyan; opacity: 0.8"></a-box>
                 <a-box position="0 1.25 0" rotation="0 22.5 0" scale="0.6 0.5 0.6" material="color: pink; opacity: 0.8"></a-box>
                 <a-box position="0 1.75 0" rotation="0 0 0" scale="0.3 0.5 0.3" material="color: white; opacity: 0.8"></a-box>
             </a-entity>
-            
         </a-marker>
-        
-        <!-- Contenedor para objetos flotantes (pegados a la cámara) -->
-        <a-entity id="cameraContainer" position="0 0 -3">
-            <!-- Aquí se clonarán los objetos cuando se fijen a la cámara -->
-        </a-entity>
-        
-        <!-- Cámara con cursor -->
-        <a-entity camera>
-            <!-- Los objetos flotantes estarán vinculados a la cámara -->
-        </a-entity>
+
+        <a-entity camera></a-entity>
     </a-scene>
-    
+
     <script>
-        // Referencias a elementos DOM
         const statusIndicator = document.getElementById('statusIndicator');
         const marker = document.getElementById('miMarcador');
+        const contenedorGrupos = document.getElementById('contenedorGrupos');
         const grupo1Button = document.getElementById('grupo1Button');
         const grupo2Button = document.getElementById('grupo2Button');
         const grupo3Button = document.getElementById('grupo3Button');
         const grupo1 = document.getElementById('grupo1');
         const grupo2 = document.getElementById('grupo2');
         const grupo3 = document.getElementById('grupo3');
-        const fixButton = document.getElementById('fixButton');
-        
-        // Variables de estado
-        let objetosFijos = false;
-        let marcadorDetectado = false;
-        
-        // Configuración de grupos
+
         const grupos = [
             { element: grupo1, button: grupo1Button, nombre: 'Cubos Rojo y Azul' },
             { element: grupo2, button: grupo2Button, nombre: 'Triángulo Verde' },
             { element: grupo3, button: grupo3Button, nombre: 'Torre Multicolor' }
         ];
-        
+
         let grupoActualIndex = 0;
-        
-        // Función para cambiar entre grupos
+
         function cambiarAGrupo(index) {
-            // Ocultar todos los grupos
             grupos.forEach((grupo, i) => {
                 grupo.element.setAttribute('visible', 'false');
                 grupo.button.classList.remove('active-button');
             });
-            
-            // Mostrar el grupo seleccionado
+
             grupoActualIndex = index;
             grupos[grupoActualIndex].element.setAttribute('visible', 'true');
             grupos[grupoActualIndex].button.classList.add('active-button');
-            
-            // Actualizar el indicador
-            actualizarIndicadorEstado();
-            
-            // Si los objetos están fijos, actualizar los objetos flotantes
-            if (objetosFijos) {
-                actualizarObjetosFlotantes();
-            }
+
+            statusIndicator.textContent = `Mostrando: ${grupos[grupoActualIndex].nombre}`;
         }
-        
-        // Función para actualizar el indicador de estado
-        function actualizarIndicadorEstado() {
-            let estado;
-            
-            if (objetosFijos) {
-                estado = `OBJETOS FIJADOS - ${grupos[grupoActualIndex].nombre}`;
-            } else {
-                estado = marcadorDetectado ? 
-                    `Marcador detectado - ${grupos[grupoActualIndex].nombre}` : 
-                    "Buscando marcador...";
-            }
-            
-            statusIndicator.textContent = estado;
-        }
-        
-        // Función para fijar los objetos a la pantalla
-        function fijarObjetosAPantalla() {
-            if (!marcadorDetectado && !objetosFijos) {
-                alert("¡Necesitas detectar el marcador primero!");
-                return;
-            }
-            
-            objetosFijos = !objetosFijos;
-            
-            if (objetosFijos) {
-                // Fijar objetos a la pantalla
-                actualizarObjetosFlotantes();
-                
-                // Ocultar grupos en el marcador ya que ahora son visibles en la pantalla
-                grupos.forEach(grupo => {
-                    grupo.element.setAttribute('visible', 'false');
-                });
-                
-                fixButton.textContent = "LIBERAR OBJETOS";
-                fixButton.classList.add('fixed');
-            } else {
-                // Limpiar objetos flotantes
-                limpiarObjetosFlotantes();
-                
-                // Mostrar solo el grupo actual en el marcador
-                grupos.forEach((grupo, i) => {
-                    grupo.element.setAttribute('visible', i === grupoActualIndex);
-                });
-                
-                fixButton.textContent = "FIJAR A PANTALLA";
-                fixButton.classList.remove('fixed');
-            }
-            
-            actualizarIndicadorEstado();
-        }
-        
-        // Función para obtener el contenedor de la cámara
-        function obtenerContenedorCamara() {
-            // Obtener la entidad de la cámara
-            const camera = document.querySelector('[camera]');
-            
-            // Si no existe un contenedor en la cámara, lo creamos
-            let container = document.getElementById('cameraContainer');
-            
-            if (!container) {
-                container = document.createElement('a-entity');
-                container.id = 'cameraContainer';
-                container.setAttribute('position', '0 0 -3');  // Posición frente a la cámara
-                camera.appendChild(container);
-            }
-            
-            return container;
-        }
-        
-        // Función para actualizar los objetos flotantes
-        function actualizarObjetosFlotantes() {
-            // Obtener el contenedor de la cámara
-            const container = obtenerContenedorCamara();
-            
-            // Limpiar el contenedor
-            limpiarObjetosFlotantes();
-            
-            // Crear clones de los objetos del grupo actual
-            const grupoActual = grupos[grupoActualIndex].element;
-            
-            // Clonar todos los cubos del grupo actual
-            Array.from(grupoActual.children).forEach((child, index) => {
-                const clone = document.createElement(child.tagName);
-                
-                // Copiar atributos
-                const position = child.getAttribute('position');
-                const rotation = child.getAttribute('rotation');
-                const scale = child.getAttribute('scale');
-                const material = child.getAttribute('material');
-                
-                // Ajustar la posición para que se vea centrada frente a la cámara
-                // Aplicamos los atributos copiados con pequeños ajustes para mejor visualización
-                clone.setAttribute('position', {
-                    x: position.x * 0.5,          // Reducimos escala para mejor visualización
-                    y: position.y * 0.5 - 0.5,    // Ajustamos altura
-                    z: position.z * 0.5 - 2       // Ajustamos profundidad
-                });
-                
-                clone.setAttribute('rotation', rotation);
-                clone.setAttribute('scale', {
-                    x: scale.x * 0.5,   // Reducimos tamaño para mejor visualización
-                    y: scale.y * 0.5,
-                    z: scale.z * 0.5
-                });
-                clone.setAttribute('material', material);
-                
-                // Añadir al contenedor
-                container.appendChild(clone);
-            });
-        }
-        
-        // Función para limpiar los objetos flotantes
-        function limpiarObjetosFlotantes() {
-            const container = document.getElementById('cameraContainer');
-            
-            if (container) {
-                while (container.firstChild) {
-                    container.removeChild(container.firstChild);
-                }
-            }
-        }
-        
-        // Detectar cuando se encuentra el marcador
+
         marker.addEventListener('markerFound', () => {
-            marcadorDetectado = true;
-            actualizarIndicadorEstado();
+            statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
         });
-        
-        // Detectar cuando se pierde el marcador
+
         marker.addEventListener('markerLost', () => {
-            marcadorDetectado = false;
-            
-            // Solo actualizamos el estado si no están fijos los objetos
-            if (!objetosFijos) {
-                actualizarIndicadorEstado();
-            }
+            const grupoActual = grupos[grupoActualIndex].element;
+            const clone = grupoActual.cloneNode(true);
+            clone.setAttribute('position', grupoActual.object3D.position);
+            clone.setAttribute('rotation', grupoActual.object3D.rotation);
+            contenedorGrupos.appendChild(clone);
+            grupoActual.setAttribute('visible', 'false');
+            statusIndicator.textContent = `Marcador perdido - ${grupos[grupoActualIndex].nombre} bloqueado en escena`;
         });
-        
-        // Asignar eventos a los botones
+
         grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
         grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
         grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
-        fixButton.addEventListener('click', fijarObjetosAPantalla);
-        
-        // Inicializar
+
         document.addEventListener('DOMContentLoaded', () => {
-            // Empezar con el primer grupo
             cambiarAGrupo(0);
         });
     </script>
