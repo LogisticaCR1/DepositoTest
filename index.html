@@ -2,78 +2,164 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Sistema AR - Movimiento de Grupo</title>
+    <title>Sistema AR - Grupos de Cubos</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; height: 100%; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
         .button-container {
             position: fixed;
             bottom: 20px;
             left: 0;
             right: 0;
+            width: 100%;
             display: flex;
-            flex-wrap: wrap;
             justify-content: center;
+            align-items: center;
             gap: 10px;
             z-index: 999;
+            flex-wrap: wrap;
         }
-        button {
-            padding: 10px;
+        .scene-button, .control-button {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid white;
+            padding: 10px 15px;
             font-size: 16px;
+            border-radius: 5px;
             cursor: pointer;
+            margin: 5px;
+            min-width: 100px;
+        }
+        .active-button {
+            background: rgba(76, 175, 80, 0.8);
+        }
+        .status-indicator {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 999;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
+    <div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
+
     <div class="button-container">
-        <button onclick="bloquearGrupo()">Bloquear Grupo</button>
-        <button onclick="mover('adelante')">Adelante</button>
-        <button onclick="mover('atras')">Atrás</button>
-        <button onclick="mover('arriba')">Arriba</button>
-        <button onclick="mover('abajo')">Abajo</button>
-        <button onclick="mover('girar')">Girar</button>
+        <button id="grupo1Button" class="scene-button active-button">Grupo 1</button>
+        <button id="grupo2Button" class="scene-button">Grupo 2</button>
+        <button id="grupo3Button" class="scene-button">Grupo 3</button>
+        <button id="bloquearButton" class="control-button">Bloquear</button>
+        <button class="control-button" onclick="moverCamara('adelante')">Adelante</button>
+        <button class="control-button" onclick="moverCamara('atras')">Atrás</button>
+        <button class="control-button" onclick="moverCamara('izquierda')">Izquierda</button>
+        <button class="control-button" onclick="moverCamara('derecha')">Derecha</button>
+        <button class="control-button" onclick="moverCamara('arriba')">Arriba</button>
+        <button class="control-button" onclick="moverCamara('abajo')">Abajo</button>
     </div>
 
-    <a-scene embedded arjs>
-        <a-marker id="miMarcador" type="pattern" url="zona1.patt">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;" vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;">
+        <a-marker id="miMarcador" type="pattern" url="zona1.patt" raycaster="objects: .clickable" emitevents="true">
             <a-entity id="grupo1">
-                <a-box position="0 0.5 0" color="red"></a-box>
-                <a-box position="1.5 0.5 0" color="blue"></a-box>
+                <a-box position="0 0.5 0" rotation="0 0 0" scale="1 1 1" material="color: red; opacity: 0.8"></a-box>
+                <a-box position="1.5 0.5 0" rotation="0 45 0" scale="0.7 0.7 0.7" material="color: blue; opacity: 0.8"></a-box>
+            </a-entity>
+            <a-entity id="grupo2">
+                <a-box position="0 0.5 0" rotation="0 0 0" scale="0.8 0.8 0.8" material="color: green; opacity: 0.8"></a-box>
+                <a-box position="1 0.5 1" rotation="0 45 0" scale="0.8 0.8 0.8" material="color: yellow; opacity: 0.8"></a-box>
+                <a-box position="-1 0.5 1" rotation="0 -45 0" scale="0.8 0.8 0.8" material="color: purple; opacity: 0.8"></a-box>
+            </a-entity>
+            <a-entity id="grupo3">
+                <a-box position="0 0.25 0" rotation="0 0 0" scale="1.2 0.5 1.2" material="color: orange; opacity: 0.8"></a-box>
+                <a-box position="0 0.75 0" rotation="0 45 0" scale="0.9 0.5 0.9" material="color: cyan; opacity: 0.8"></a-box>
+                <a-box position="0 1.25 0" rotation="0 22.5 0" scale="0.6 0.5 0.6" material="color: pink; opacity: 0.8"></a-box>
+                <a-box position="0 1.75 0" rotation="0 0 0" scale="0.3 0.5 0.3" material="color: white; opacity: 0.8"></a-box>
             </a-entity>
         </a-marker>
-        <a-entity camera></a-entity>
+        <a-entity id="camaraUsuario" camera position="0 1.6 5"></a-entity>
     </a-scene>
 
     <script>
+        const statusIndicator = document.getElementById('statusIndicator');
+        const marker = document.getElementById('miMarcador');
+        const grupo1Button = document.getElementById('grupo1Button');
+        const grupo2Button = document.getElementById('grupo2Button');
+        const grupo3Button = document.getElementById('grupo3Button');
+        const bloquearButton = document.getElementById('bloquearButton');
+
+        const grupo1 = document.getElementById('grupo1');
+        const grupo2 = document.getElementById('grupo2');
+        const grupo3 = document.getElementById('grupo3');
+
+        const grupos = [
+            { element: grupo1, button: grupo1Button, nombre: 'Cubos Rojo y Azul' },
+            { element: grupo2, button: grupo2Button, nombre: 'Triángulo Verde' },
+            { element: grupo3, button: grupo3Button, nombre: 'Torre Multicolor' }
+        ];
+
+        let grupoActualIndex = 0;
         let bloqueado = false;
-        let grupo = document.getElementById('grupo1');
+
+        function cambiarAGrupo(index) {
+            grupoActualIndex = index;
+            grupos.forEach((grupo, i) => {
+                grupo.button.classList.remove('active-button');
+            });
+            grupos[grupoActualIndex].button.classList.add('active-button');
+            statusIndicator.textContent = `Mostrando: ${grupos[grupoActualIndex].nombre}`;
+        }
 
         function bloquearGrupo() {
             bloqueado = true;
-            grupo.object3D.position.copy(grupo.object3D.getWorldPosition(new THREE.Vector3()));
-            grupo.object3D.rotation.copy(grupo.object3D.getWorldRotation(new THREE.Euler()));
-            document.getElementById('miMarcador').remove(grupo);
-            document.querySelector('a-scene').appendChild(grupo);
+            statusIndicator.textContent = `Grupo bloqueado: ${grupos[grupoActualIndex].nombre}`;
         }
 
-        function mover(direccion) {
-            if (!bloqueado) return;
-            let pos = grupo.getAttribute('position');
-            let rot = grupo.getAttribute('rotation');
+        function moverCamara(direccion) {
+            const camara = document.getElementById('camaraUsuario');
+            const pos = camara.getAttribute('position');
 
-            switch(direccion) {
-                case 'adelante': pos.z -= 0.1; break;
-                case 'atras': pos.z += 0.1; break;
-                case 'arriba': pos.y += 0.1; break;
-                case 'abajo': pos.y -= 0.1; break;
-                case 'girar': rot.y += 15; break;
+            switch (direccion) {
+                case 'adelante': pos.z -= 0.2; break;
+                case 'atras': pos.z += 0.2; break;
+                case 'izquierda': pos.x -= 0.2; break;
+                case 'derecha': pos.x += 0.2; break;
+                case 'arriba': pos.y += 0.2; break;
+                case 'abajo': pos.y -= 0.2; break;
             }
 
-            grupo.setAttribute('position', pos);
-            grupo.setAttribute('rotation', rot);
+            camara.setAttribute('position', pos);
         }
+
+        grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
+        grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
+        grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
+        bloquearButton.addEventListener('click', bloquearGrupo);
+
+        marker.addEventListener('markerFound', () => {
+            if (!bloqueado) {
+                statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
+            }
+        });
+
+        marker.addEventListener('markerLost', () => {
+            if (!bloqueado) {
+                statusIndicator.textContent = `Buscando marcador... (${grupos[grupoActualIndex].nombre})`;
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => cambiarAGrupo(0));
     </script>
 </body>
 </html>
