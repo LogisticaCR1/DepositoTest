@@ -1,163 +1,434 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Sistema AR - Grupos de Cubos</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <style>
-    body { margin: 0; overflow: hidden; width: 100%; height: 100%; }
-    .button-container {
-      position: fixed; bottom: 20px; left: 0; right: 0; width: 100%;
-      display: flex; justify-content: center; align-items: center;
-      gap: 20px; z-index: 999; flex-wrap: wrap;
-    }
-    .scene-button {
-      background: rgba(0, 0, 0, 0.7); color: white;
-      border: 2px solid white; padding: 10px 15px;
-      font-size: 18px; border-radius: 5px;
-      cursor: pointer; margin: 5px; min-width: 100px;
-    }
-    .active-button { background: rgba(76, 175, 80, 0.8); }
-    .status-indicator {
-      position: fixed; top: 10px; left: 10px;
-      background: rgba(0, 0, 0, 0.7); color: white;
-      padding: 5px 10px; border-radius: 5px; z-index: 999;
-      font-family: Arial, sans-serif; font-size: 16px;
-    }
-    @media (max-width: 767px) and (orientation: portrait) {
-      .button-container {
-        flex-direction: column; align-items: center; width: 100%;
-      }
-      .scene-button { width: 250px; max-width: 80%; margin: 5px auto; }
-    }
-  </style>
+    <meta charset="utf-8">
+    <title>Sistema AR - Grupos de Cubos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+        .button-container {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            z-index: 999;
+            flex-wrap: wrap;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .scene-button {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid white;
+            padding: 10px 15px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            min-width: 100px;
+            text-align: center;
+        }
+        .active-button {
+            background: rgba(76, 175, 80, 0.8);
+        }
+        .status-indicator {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 999;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+        }
+        
+        /* Contenedor para botones de navegación */
+        .navigation-container {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 999;
+            display: none; /* Oculto inicialmente */
+        }
+        
+        .lock-button {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            background: rgba(255, 0, 0, 0.7);
+            color: white;
+            border: 2px solid white;
+            padding: 10px 15px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 999;
+        }
+        
+        .nav-button {
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .nav-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        /* Media query específico para celulares en orientación vertical */
+        @media (max-width: 767px) and (orientation: portrait) {
+            .button-container {
+                flex-direction: column;
+                align-items: center;
+                width: 100%;
+                gap: 10px;
+                padding: 0;
+                margin: 0 auto;
+            }
+            .scene-button {
+                width: 250px;
+                max-width: 80%;
+                margin: 5px auto;
+            }
+            
+            .navigation-container {
+                right: auto;
+                bottom: 20px;
+                top: auto;
+                left: 50%;
+                transform: translateX(-50%);
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 100%;
+                padding: 0 20px;
+                box-sizing: border-box;
+            }
+            
+            .nav-row {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .nav-button {
+                width: 50px;
+                height: 50px;
+                font-size: 16px;
+            }
+            
+            .button-container {
+                bottom: 100px;
+            }
+        }
+    </style>
 </head>
 <body>
-
-<div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
-
-<div class="button-container">
-  <button id="grupo1Button" class="scene-button active-button">Grupo 1</button>
-  <button id="grupo2Button" class="scene-button">Grupo 2</button>
-  <button id="grupo3Button" class="scene-button">Grupo 3</button>
-</div>
-
-<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;" vr-mode-ui="enabled: false">
-  <a-marker id="miMarcador" type="pattern" url="zona1.patt" raycaster="objects: .clickable" emitevents="true">
-    <a-entity id="grupo1" visible="true">
-      <a-box position="0 0.5 0" material="color: red; opacity: 0.8"></a-box>
-      <a-box position="1.5 0.5 0" rotation="0 45 0" scale="0.7 0.7 0.7" material="color: blue; opacity: 0.8"></a-box>
-    </a-entity>
-    <a-entity id="grupo2" visible="false">
-      <a-box position="0 0.5 0" scale="0.8 0.8 0.8" material="color: green; opacity: 0.8"></a-box>
-      <a-box position="1 0.5 1" rotation="0 45 0" scale="0.8 0.8 0.8" material="color: yellow; opacity: 0.8"></a-box>
-      <a-box position="-1 0.5 1" rotation="0 -45 0" scale="0.8 0.8 0.8" material="color: purple; opacity: 0.8"></a-box>
-    </a-entity>
-    <a-entity id="grupo3" visible="false">
-      <a-box position="0 0.25 0" scale="1.2 0.5 1.2" material="color: orange; opacity: 0.8"></a-box>
-      <a-box position="0 0.75 0" rotation="0 45 0" scale="0.9 0.5 0.9" material="color: cyan; opacity: 0.8"></a-box>
-      <a-box position="0 1.25 0" rotation="0 22.5 0" scale="0.6 0.5 0.6" material="color: pink; opacity: 0.8"></a-box>
-      <a-box position="0 1.75 0" scale="0.3 0.5 0.3" material="color: white; opacity: 0.8"></a-box>
-    </a-entity>
-  </a-marker>
-
-  <!-- Aquí irán los grupos anclados -->
-  <a-entity id="grupoClonadoContainer"></a-entity>
-
-  <a-entity camera></a-entity>
-</a-scene>
-
-<script>
-    // Referencias a elementos DOM
-    const statusIndicator = document.getElementById('statusIndicator');
-    const marker = document.getElementById('miMarcador');
-    const grupo1Button = document.getElementById('grupo1Button');
-    const grupo2Button = document.getElementById('grupo2Button');
-    const grupo3Button = document.getElementById('grupo3Button');
-    const grupo1 = document.getElementById('grupo1');
-    const grupo2 = document.getElementById('grupo2');
-    const grupo3 = document.getElementById('grupo3');
-    const scene = document.querySelector('a-scene');
-
-    // Configuración de grupos
-    const grupos = [
-        { element: grupo1, button: grupo1Button, nombre: 'Cubos Rojo y Azul' },
-        { element: grupo2, button: grupo2Button, nombre: 'Triángulo Verde' },
-        { element: grupo3, button: grupo3Button, nombre: 'Torre Multicolor' }
-    ];
-
-    let grupoActualIndex = 0;
-    let objetoPegado = null; // Guarda el grupo "pegado"
-
-    function clonarGrupo(grupoOriginal) {
-        const clone = grupoOriginal.cloneNode(true);
-        clone.setAttribute('visible', true);
-        return clone;
-    }
-
-    function pegarGrupoEnMundo() {
-        const markerPos = marker.object3D.position.clone();
-        const markerRot = marker.object3D.rotation.clone();
-        const grupoOriginal = grupos[grupoActualIndex].element;
-
-        // Si ya hay un objeto pegado, eliminarlo
-        if (objetoPegado) {
-            objetoPegado.parentNode.removeChild(objetoPegado);
-            objetoPegado = null;
+    <!-- Indicador de estado -->
+    <div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
+    
+    <!-- Botón para fijar objetos -->
+    <button id="lockButton" class="lock-button">Fijar Objetos</button>
+    
+    <!-- Botones para cambiar escenas -->
+    <div class="button-container">
+        <button id="grupo1Button" class="scene-button active-button">Grupo 1</button>
+        <button id="grupo2Button" class="scene-button">Grupo 2</button>
+        <button id="grupo3Button" class="scene-button">Grupo 3</button>
+    </div>
+    
+    <!-- Controles de navegación -->
+    <div id="navigationControls" class="navigation-container">
+        <div class="nav-row">
+            <button id="upButton" class="nav-button">↑</button>
+        </div>
+        <div class="nav-row">
+            <button id="leftButton" class="nav-button">←</button>
+            <button id="rotateButton" class="nav-button">↻</button>
+            <button id="rightButton" class="nav-button">→</button>
+        </div>
+        <div class="nav-row">
+            <button id="downButton" class="nav-button">↓</button>
+        </div>
+        <div class="nav-row">
+            <button id="forwardButton" class="nav-button">+</button>
+            <button id="backwardButton" class="nav-button">-</button>
+        </div>
+    </div>
+    
+    <!-- Una sola escena A-Frame -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;" vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;">
+        
+        <!-- Un solo marcador con múltiples grupos de cubos -->
+        <a-marker id="miMarcador" type="pattern" url="zona1.patt" raycaster="objects: .clickable" emitevents="true">
+            
+            <!-- Grupo 1: Dos cubos (rojo y azul) -->
+            <a-entity id="grupo1" visible="true">
+                <a-box position="0 0.5 0" rotation="0 0 0" scale="1 1 1" material="color: red; opacity: 0.8"></a-box>
+                <a-box position="1.5 0.5 0" rotation="0 45 0" scale="0.7 0.7 0.7" material="color: blue; opacity: 0.8"></a-box>
+            </a-entity>
+            
+            <!-- Grupo 2: Tres cubos en formación triangular -->
+            <a-entity id="grupo2" visible="false">
+                <a-box position="0 0.5 0" rotation="0 0 0" scale="0.8 0.8 0.8" material="color: green; opacity: 0.8"></a-box>
+                <a-box position="1 0.5 1" rotation="0 45 0" scale="0.8 0.8 0.8" material="color: yellow; opacity: 0.8"></a-box>
+                <a-box position="-1 0.5 1" rotation="0 -45 0" scale="0.8 0.8 0.8" material="color: purple; opacity: 0.8"></a-box>
+            </a-entity>
+            
+            <!-- Grupo 3: Formación de torre -->
+            <a-entity id="grupo3" visible="false">
+                <a-box position="0 0.25 0" rotation="0 0 0" scale="1.2 0.5 1.2" material="color: orange; opacity: 0.8"></a-box>
+                <a-box position="0 0.75 0" rotation="0 45 0" scale="0.9 0.5 0.9" material="color: cyan; opacity: 0.8"></a-box>
+                <a-box position="0 1.25 0" rotation="0 22.5 0" scale="0.6 0.5 0.6" material="color: pink; opacity: 0.8"></a-box>
+                <a-box position="0 1.75 0" rotation="0 0 0" scale="0.3 0.5 0.3" material="color: white; opacity: 0.8"></a-box>
+            </a-entity>
+            
+        </a-marker>
+        
+        <!-- Contenedor para objetos fijados -->
+        <a-entity id="objetosFijados" position="0 0 -3" rotation="0 0 0" visible="false">
+            <!-- Los objetos se clonarán aquí cuando se fijen -->
+        </a-entity>
+        
+        <!-- Cámara con cursor -->
+        <a-entity camera look-controls></a-entity>
+    </a-scene>
+    
+    <script>
+        // Referencias a elementos DOM
+        const statusIndicator = document.getElementById('statusIndicator');
+        const marker = document.getElementById('miMarcador');
+        const grupo1Button = document.getElementById('grupo1Button');
+        const grupo2Button = document.getElementById('grupo2Button');
+        const grupo3Button = document.getElementById('grupo3Button');
+        const grupo1 = document.getElementById('grupo1');
+        const grupo2 = document.getElementById('grupo2');
+        const grupo3 = document.getElementById('grupo3');
+        const lockButton = document.getElementById('lockButton');
+        const navigationControls = document.getElementById('navigationControls');
+        const objetosFijados = document.getElementById('objetosFijados');
+        
+        // Botones de navegación
+        const upButton = document.getElementById('upButton');
+        const downButton = document.getElementById('downButton');
+        const leftButton = document.getElementById('leftButton');
+        const rightButton = document.getElementById('rightButton');
+        const forwardButton = document.getElementById('forwardButton');
+        const backwardButton = document.getElementById('backwardButton');
+        const rotateButton = document.getElementById('rotateButton');
+        
+        // Configuración de grupos
+        const grupos = [
+            { element: grupo1, button: grupo1Button, nombre: 'Cubos Rojo y Azul' },
+            { element: grupo2, button: grupo2Button, nombre: 'Triángulo Verde' },
+            { element: grupo3, button: grupo3Button, nombre: 'Torre Multicolor' }
+        ];
+        
+        let grupoActualIndex = 0;
+        let objetosFijos = false;
+        
+        // Función para cambiar entre grupos
+        function cambiarAGrupo(index) {
+            // Si los objetos están fijados, cambiar la visibilidad en los objetos fijados
+            if (objetosFijos) {
+                for (let i = 0; i < grupos.length; i++) {
+                    objetosFijados.querySelector(`#grupo${i+1}-fijado`).setAttribute('visible', i === index);
+                }
+            } else {
+                // Ocultar todos los grupos
+                grupos.forEach((grupo, i) => {
+                    grupo.element.setAttribute('visible', 'false');
+                });
+                
+                // Mostrar el grupo seleccionado
+                grupos[index].element.setAttribute('visible', 'true');
+            }
+            
+            // Actualizar botones y estado
+            grupos.forEach((grupo, i) => {
+                grupo.button.classList.remove('active-button');
+            });
+            
+            grupos[index].button.classList.add('active-button');
+            grupoActualIndex = index;
+            
+            // Actualizar el indicador
+            if (objetosFijos) {
+                statusIndicator.textContent = `Objetos fijados - ${grupos[index].nombre}`;
+            } else {
+                statusIndicator.textContent = `Buscando marcador... (${grupos[index].nombre})`;
+            }
         }
-
-        // Clonar el grupo actual y ponerlo en la escena
-        objetoPegado = clonarGrupo(grupoOriginal);
-        objetoPegado.setAttribute('position', `${markerPos.x} ${markerPos.y} ${markerPos.z}`);
-        objetoPegado.setAttribute('rotation', `${THREE.MathUtils.radToDeg(markerRot.x)} ${THREE.MathUtils.radToDeg(markerRot.y)} ${THREE.MathUtils.radToDeg(markerRot.z)}`);
-        scene.appendChild(objetoPegado);
-    }
-
-    // Función para cambiar entre grupos
-    function cambiarAGrupo(index) {
-        grupos.forEach((grupo, i) => {
-            grupo.element.setAttribute('visible', 'false');
-            grupo.button.classList.remove('active-button');
+        
+        // Detectar cuando se encuentra el marcador
+        marker.addEventListener('markerFound', () => {
+            if (!objetosFijos) {
+                statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
+            }
         });
-
-        grupoActualIndex = index;
-        grupos[grupoActualIndex].element.setAttribute('visible', 'true');
-        grupos[grupoActualIndex].button.classList.add('active-button');
-
-        statusIndicator.textContent = `Mostrando: ${grupos[grupoActualIndex].nombre}`;
-
-        // Si hay un objeto pegado anterior, eliminarlo al cambiar
-        if (objetoPegado) {
-            objetoPegado.parentNode.removeChild(objetoPegado);
-            objetoPegado = null;
-        }
-    }
-
-    // Evento cuando se detecta el marcador
-    marker.addEventListener('markerFound', () => {
-        statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
-        pegarGrupoEnMundo();
-    });
-
-    // Evento cuando se pierde el marcador
-    marker.addEventListener('markerLost', () => {
-        statusIndicator.textContent = `Buscando marcador... (${grupos[grupoActualIndex].nombre})`;
-        // Nota: el objeto pegado se queda
-    });
-
-    // Botones
-    grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
-    grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
-    grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
-
-    // Inicializar
-    document.addEventListener('DOMContentLoaded', () => {
-        cambiarAGrupo(0);
-    });
-</script>
-
-
+        
+        // Detectar cuando se pierde el marcador
+        marker.addEventListener('markerLost', () => {
+            if (!objetosFijos) {
+                statusIndicator.textContent = `Buscando marcador... (${grupos[grupoActualIndex].nombre})`;
+            }
+        });
+        
+        // Función para fijar objetos
+        lockButton.addEventListener('click', () => {
+            if (!objetosFijos) {
+                // Comprobar si el marcador está visible
+                if (marker.object3D.visible) {
+                    // Fijar objetos
+                    objetosFijos = true;
+                    
+                    // Limpiar contenedor de objetos fijados
+                    while (objetosFijados.firstChild) {
+                        objetosFijados.removeChild(objetosFijados.firstChild);
+                    }
+                    
+                    // Clonar los grupos al contenedor de objetos fijados
+                    for (let i = 0; i < grupos.length; i++) {
+                        // Crear un contenedor para cada grupo
+                        const grupoFijado = document.createElement('a-entity');
+                        grupoFijado.id = `grupo${i+1}-fijado`;
+                        grupoFijado.setAttribute('visible', i === grupoActualIndex);
+                        
+                        // Clonar el HTML del grupo original
+                        grupoFijado.innerHTML = grupos[i].element.innerHTML;
+                        
+                        // Agregar al contenedor de objetos fijados
+                        objetosFijados.appendChild(grupoFijado);
+                    }
+                    
+                    // Mostrar el contenedor de objetos fijados
+                    objetosFijados.setAttribute('visible', 'true');
+                    
+                    // Mostrar controles de navegación
+                    navigationControls.style.display = 'flex';
+                    
+                    // Cambiar texto del botón
+                    lockButton.textContent = 'Desfijar Objetos';
+                    lockButton.style.background = 'rgba(0, 128, 0, 0.7)';
+                    
+                    // Actualizar indicador de estado
+                    statusIndicator.textContent = `Objetos fijados - ${grupos[grupoActualIndex].nombre}`;
+                } else {
+                    // Alertar que no se detecta el marcador
+                    alert('No se detecta el marcador. Por favor, asegúrate de que el marcador esté visible en la cámara.');
+                }
+            } else {
+                // Desfijar objetos
+                objetosFijos = false;
+                
+                // Ocultar objetos fijados
+                objetosFijados.setAttribute('visible', 'false');
+                
+                // Ocultar controles de navegación
+                navigationControls.style.display = 'none';
+                
+                // Cambiar texto del botón
+                lockButton.textContent = 'Fijar Objetos';
+                lockButton.style.background = 'rgba(255, 0, 0, 0.7)';
+                
+                // Restaurar visibilidad de los grupos originales
+                grupos.forEach((grupo, i) => {
+                    grupo.element.setAttribute('visible', i === grupoActualIndex);
+                });
+                
+                // Actualizar indicador de estado
+                if (marker.object3D.visible) {
+                    statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
+                } else {
+                    statusIndicator.textContent = `Buscando marcador... (${grupos[grupoActualIndex].nombre})`;
+                }
+            }
+        });
+        
+        // Variables para controlar la navegación
+        const movementSpeed = 0.1;
+        const rotationSpeed = 5;
+        
+        // Controles de navegación
+        upButton.addEventListener('click', () => {
+            if (objetosFijos) {
+                objetosFijados.object3D.position.y += movementSpeed;
+            }
+        });
+        
+        downButton.addEventListener('click', () => {
+            if (objetosFijos) {
+                objetosFijados.object3D.position.y -= movementSpeed;
+            }
+        });
+        
+        leftButton.addEventListener('click', () => {
+            if (objetosFijos) {
+                objetosFijados.object3D.position.x -= movementSpeed;
+            }
+        });
+        
+        rightButton.addEventListener('click', () => {
+            if (objetosFijos) {
+                objetosFijados.object3D.position.x += movementSpeed;
+            }
+        });
+        
+        forwardButton.addEventListener('click', () => {
+            if (objetosFijos) {
+                objetosFijados.object3D.position.z -= movementSpeed;
+            }
+        });
+        
+        backwardButton.addEventListener('click', () => {
+            if (objetosFijos) {
+                objetosFijados.object3D.position.z += movementSpeed;
+            }
+        });
+        
+        rotateButton.addEventListener('click', () => {
+            if (objetosFijos) {
+                objetosFijados.object3D.rotation.y += THREE.Math.degToRad(rotationSpeed);
+            }
+        });
+        
+        // Asignar eventos a los botones de grupos
+        grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
+        grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
+        grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            // Empezar con el primer grupo
+            cambiarAGrupo(0);
+        });
+    </script>
 </body>
 </html>
