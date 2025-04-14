@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Sistema AR - Grupos de Cubos</title>
+    <title>Sistema AR - Grupos de Cubos con Selector de Cámaras</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -55,8 +55,61 @@
             font-family: Arial, sans-serif;
             font-size: 16px;
         }
+        .camera-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid white;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .camera-icon {
+            width: 24px;
+            height: 24px;
+            fill: white;
+            margin-right: 5px;
+        }
+        .camera-selector {
+            position: fixed;
+            top: 60px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 5px;
+            padding: 10px;
+            z-index: 999;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        .camera-option {
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .camera-option:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .camera-option.active {
+            background: rgba(76, 175, 80, 0.6);
+            border-color: rgba(76, 175, 80, 0.8);
+        }
         
-        /* Media query específico para celulares en orientación vertical */
+        /* Media query para dispositivos móviles en orientación vertical */
         @media (max-width: 767px) and (orientation: portrait) {
             .button-container {
                 flex-direction: column;
@@ -71,12 +124,32 @@
                 max-width: 80%;
                 margin: 5px auto;
             }
+            .camera-selector {
+                width: 80%;
+                right: 10px;
+                left: 10px;
+                margin: 0 auto;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Indicador de estado -->
     <div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
+    
+    <!-- Botón para cambiar de cámara -->
+    <button id="cameraButton" class="camera-button">
+        <svg class="camera-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M12 9a3 3 0 100 6 3 3 0 000-6z"/>
+            <path fill-rule="evenodd" d="M9 2L7.5 4h-2A2.5 2.5 0 003 6.5v11A2.5 2.5 0 005.5 20h13a2.5 2.5 0 002.5-2.5v-11A2.5 2.5 0 0018.5 4h-2L15 2H9zm3 15a5 5 0 100-10 5 5 0 000 10z"/>
+        </svg>
+        Cámara
+    </button>
+    
+    <!-- Selector de cámara -->
+    <div id="cameraSelector" class="camera-selector">
+        <div class="camera-option" data-id="default">Cargando cámaras...</div>
+    </div>
     
     <!-- Botones para cambiar escenas -->
     <div class="button-container">
@@ -128,6 +201,14 @@
         const grupo1 = document.getElementById('grupo1');
         const grupo2 = document.getElementById('grupo2');
         const grupo3 = document.getElementById('grupo3');
+        const cameraButton = document.getElementById('cameraButton');
+        const cameraSelector = document.getElementById('cameraSelector');
+        
+        // Variables para la gestión de cámaras
+        let videoDevices = [];
+        let currentDeviceId = '';
+        let arSystem = null;
+        let cameraMenuOpen = false;
         
         // Configuración de grupos
         const grupos = [
@@ -155,6 +236,143 @@
             statusIndicator.textContent = `Mostrando: ${grupos[grupoActualIndex].nombre}`;
         }
         
+        // Función para enumerar dispositivos de cámara disponibles
+        async function enumerarDispositivosDeCamara() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                
+                // Filtrar solo los dispositivos de video (cámaras)
+                videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                // Limpiar el selector de cámaras
+                cameraSelector.innerHTML = '';
+                
+                if (videoDevices.length === 0) {
+                    const option = document.createElement('div');
+                    option.className = 'camera-option';
+                    option.textContent = 'No se encontraron cámaras';
+                    cameraSelector.appendChild(option);
+                    return;
+                }
+                
+                // Añadir cada cámara encontrada al selector
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('div');
+                    option.className = 'camera-option';
+                    if (device.deviceId === currentDeviceId) {
+                        option.classList.add('active');
+                    }
+                    
+                    // Determinar un nombre descriptivo para la cámara
+                    let cameraName = device.label || `Cámara ${index + 1}`;
+                    
+                    // Intentar identificar el tipo de cámara (frontal, trasera, etc.)
+                    if (cameraName.toLowerCase().includes('front')) {
+                        cameraName += ' (Frontal)';
+                    } else if (cameraName.toLowerCase().includes('back') || cameraName.toLowerCase().includes('rear')) {
+                        cameraName += ' (Trasera)';
+                    } else if (cameraName.toLowerCase().includes('wide') || cameraName.toLowerCase().includes('ultra')) {
+                        cameraName += ' (Gran Angular)';
+                    } else if (cameraName.toLowerCase().includes('tele')) {
+                        cameraName += ' (Telefoto)';
+                    }
+                    
+                    option.textContent = cameraName;
+                    option.dataset.id = device.deviceId;
+                    
+                    option.addEventListener('click', () => {
+                        cambiarCamara(device.deviceId);
+                        cerrarSelectorDeCamara();
+                    });
+                    
+                    cameraSelector.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error al enumerar dispositivos:', error);
+                statusIndicator.textContent = 'Error al acceder a las cámaras';
+            }
+        }
+        
+        // Función para cambiar la cámara activa
+        async function cambiarCamara(deviceId) {
+            try {
+                currentDeviceId = deviceId;
+                
+                // Actualizar la clase active en las opciones de cámara
+                const options = cameraSelector.querySelectorAll('.camera-option');
+                options.forEach(option => {
+                    if (option.dataset.id === deviceId) {
+                        option.classList.add('active');
+                    } else {
+                        option.classList.remove('active');
+                    }
+                });
+                
+                // Obtener el sistema AR
+                if (!arSystem) {
+                    const scene = document.querySelector('a-scene');
+                    arSystem = scene.systems["arjs"];
+                }
+                
+                if (arSystem && arSystem.arToolkitSource) {
+                    // Detener la cámara actual
+                    arSystem.arToolkitSource.domElement.srcObject.getTracks().forEach(track => track.stop());
+                    
+                    // Configurar la nueva cámara
+                    const constraints = {
+                        video: {
+                            deviceId: { exact: deviceId }
+                        }
+                    };
+                    
+                    // Solicitar acceso a la nueva cámara
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    
+                    // Asignar la nueva cámara al sistema AR.js
+                    arSystem.arToolkitSource.domElement.srcObject = stream;
+                    
+                    // Reiniciar el sistema AR
+                    arSystem.arToolkitSource.onResize();
+                    arSystem.arToolkitSource.copySizeTo();
+                    
+                    // Buscar el nombre de la cámara seleccionada
+                    const selectedDevice = videoDevices.find(device => device.deviceId === deviceId);
+                    const cameraName = selectedDevice ? (selectedDevice.label || 'Cámara seleccionada') : 'Cámara seleccionada';
+                    
+                    statusIndicator.textContent = `Cambiado a: ${cameraName}`;
+                    
+                    // Esperar un momento y luego actualizar el estado con el grupo actual
+                    setTimeout(() => {
+                        statusIndicator.textContent = `Buscando marcador... (${grupos[grupoActualIndex].nombre})`;
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Error al cambiar la cámara:', error);
+                statusIndicator.textContent = 'Error al cambiar la cámara';
+            }
+        }
+        
+        // Función para abrir/cerrar el selector de cámara
+        function toggleSelectorDeCamara() {
+            if (cameraMenuOpen) {
+                cerrarSelectorDeCamara();
+            } else {
+                abrirSelectorDeCamara();
+            }
+        }
+        
+        function abrirSelectorDeCamara() {
+            enumerarDispositivosDeCamara();
+            cameraSelector.style.display = 'flex';
+            cameraMenuOpen = true;
+        }
+        
+        function cerrarSelectorDeCamara() {
+            cameraSelector.style.display = 'none';
+            cameraMenuOpen = false;
+        }
+        
         // Detectar cuando se encuentra el marcador
         marker.addEventListener('markerFound', () => {
             statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
@@ -169,9 +387,34 @@
         grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
         grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
         grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
+        cameraButton.addEventListener('click', toggleSelectorDeCamara);
+        
+        // Cerrar el selector de cámara si se hace clic fuera de él
+        document.addEventListener('click', (event) => {
+            if (cameraMenuOpen && 
+                event.target !== cameraButton && 
+                event.target !== cameraSelector && 
+                !cameraSelector.contains(event.target) &&
+                !cameraButton.contains(event.target)) {
+                cerrarSelectorDeCamara();
+            }
+        });
         
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
+            // Solicitar permisos de cámara y enumerar dispositivos disponibles
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(() => {
+                    // Enumerar dispositivos después de obtener permisos
+                    setTimeout(() => {
+                        enumerarDispositivosDeCamara();
+                    }, 1000);
+                })
+                .catch(error => {
+                    console.error('Error al acceder a la cámara:', error);
+                    statusIndicator.textContent = 'Error: No se pudo acceder a la cámara';
+                });
+            
             // Empezar con el primer grupo
             cambiarAGrupo(0);
         });
