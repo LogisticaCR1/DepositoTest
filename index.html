@@ -70,81 +70,94 @@
 </a-scene>
 
 <script>
-  const statusIndicator = document.getElementById('statusIndicator');
-  const marker = document.getElementById('miMarcador');
-  const grupo1Button = document.getElementById('grupo1Button');
-  const grupo2Button = document.getElementById('grupo2Button');
-  const grupo3Button = document.getElementById('grupo3Button');
-  const grupo1 = document.getElementById('grupo1');
-  const grupo2 = document.getElementById('grupo2');
-  const grupo3 = document.getElementById('grupo3');
-  const clonadoContainer = document.getElementById('grupoClonadoContainer');
+    // Referencias a elementos DOM
+    const statusIndicator = document.getElementById('statusIndicator');
+    const marker = document.getElementById('miMarcador');
+    const grupo1Button = document.getElementById('grupo1Button');
+    const grupo2Button = document.getElementById('grupo2Button');
+    const grupo3Button = document.getElementById('grupo3Button');
+    const grupo1 = document.getElementById('grupo1');
+    const grupo2 = document.getElementById('grupo2');
+    const grupo3 = document.getElementById('grupo3');
+    const scene = document.querySelector('a-scene');
 
-  const grupos = [
-    { element: grupo1, button: grupo1Button, nombre: 'Cubos Rojo y Azul' },
-    { element: grupo2, button: grupo2Button, nombre: 'Triángulo Verde' },
-    { element: grupo3, button: grupo3Button, nombre: 'Torre Multicolor' }
-  ];
+    // Configuración de grupos
+    const grupos = [
+        { element: grupo1, button: grupo1Button, nombre: 'Cubos Rojo y Azul' },
+        { element: grupo2, button: grupo2Button, nombre: 'Triángulo Verde' },
+        { element: grupo3, button: grupo3Button, nombre: 'Torre Multicolor' }
+    ];
 
-  let grupoActualIndex = 0;
-  let marcadorDetectado = false;
+    let grupoActualIndex = 0;
+    let objetoPegado = null; // Guarda el grupo "pegado"
 
-  function cambiarAGrupo(index) {
-    grupos.forEach((grupo, i) => {
-      grupo.element.setAttribute('visible', 'false');
-      grupo.button.classList.remove('active-button');
+    function clonarGrupo(grupoOriginal) {
+        const clone = grupoOriginal.cloneNode(true);
+        clone.setAttribute('visible', true);
+        return clone;
+    }
+
+    function pegarGrupoEnMundo() {
+        const markerPos = marker.object3D.position.clone();
+        const markerRot = marker.object3D.rotation.clone();
+        const grupoOriginal = grupos[grupoActualIndex].element;
+
+        // Si ya hay un objeto pegado, eliminarlo
+        if (objetoPegado) {
+            objetoPegado.parentNode.removeChild(objetoPegado);
+            objetoPegado = null;
+        }
+
+        // Clonar el grupo actual y ponerlo en la escena
+        objetoPegado = clonarGrupo(grupoOriginal);
+        objetoPegado.setAttribute('position', `${markerPos.x} ${markerPos.y} ${markerPos.z}`);
+        objetoPegado.setAttribute('rotation', `${THREE.MathUtils.radToDeg(markerRot.x)} ${THREE.MathUtils.radToDeg(markerRot.y)} ${THREE.MathUtils.radToDeg(markerRot.z)}`);
+        scene.appendChild(objetoPegado);
+    }
+
+    // Función para cambiar entre grupos
+    function cambiarAGrupo(index) {
+        grupos.forEach((grupo, i) => {
+            grupo.element.setAttribute('visible', 'false');
+            grupo.button.classList.remove('active-button');
+        });
+
+        grupoActualIndex = index;
+        grupos[grupoActualIndex].element.setAttribute('visible', 'true');
+        grupos[grupoActualIndex].button.classList.add('active-button');
+
+        statusIndicator.textContent = `Mostrando: ${grupos[grupoActualIndex].nombre}`;
+
+        // Si hay un objeto pegado anterior, eliminarlo al cambiar
+        if (objetoPegado) {
+            objetoPegado.parentNode.removeChild(objetoPegado);
+            objetoPegado = null;
+        }
+    }
+
+    // Evento cuando se detecta el marcador
+    marker.addEventListener('markerFound', () => {
+        statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
+        pegarGrupoEnMundo();
     });
-    grupoActualIndex = index;
-    grupos[grupoActualIndex].element.setAttribute('visible', 'true');
-    grupos[grupoActualIndex].button.classList.add('active-button');
-    statusIndicator.textContent = `Mostrando: ${grupos[grupoActualIndex].nombre}`;
-  }
 
-  function clonarYAnclarGrupo(grupoOriginal) {
-    // Limpiar anteriores
-    while (clonadoContainer.firstChild) {
-      clonadoContainer.removeChild(clonadoContainer.firstChild);
-    }
+    // Evento cuando se pierde el marcador
+    marker.addEventListener('markerLost', () => {
+        statusIndicator.textContent = `Buscando marcador... (${grupos[grupoActualIndex].nombre})`;
+        // Nota: el objeto pegado se queda
+    });
 
-    const clon = grupoOriginal.cloneNode(true);
-    clon.setAttribute('visible', 'true');
-    clon.setAttribute('position', grupoOriginal.object3D.position);
-    clon.setAttribute('rotation', grupoOriginal.object3D.rotation);
-    clon.object3D.position.copy(grupoOriginal.object3D.getWorldPosition(new THREE.Vector3()));
-    clon.object3D.rotation.copy(grupoOriginal.object3D.getWorldRotation(new THREE.Euler()));
-    clonadoContainer.appendChild(clon);
-  }
+    // Botones
+    grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
+    grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
+    grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
 
-  marker.addEventListener('markerFound', () => {
-    statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
-    if (!marcadorDetectado) {
-      clonarYAnclarGrupo(grupos[grupoActualIndex].element);
-      marcadorDetectado = true;
-    }
-  });
-
-  marker.addEventListener('markerLost', () => {
-    statusIndicator.textContent = `Marcador perdido - objeto anclado`;
-    marcadorDetectado = false;
-  });
-
-  grupo1Button.addEventListener('click', () => {
-    cambiarAGrupo(0);
-    marcadorDetectado = false;
-  });
-  grupo2Button.addEventListener('click', () => {
-    cambiarAGrupo(1);
-    marcadorDetectado = false;
-  });
-  grupo3Button.addEventListener('click', () => {
-    cambiarAGrupo(2);
-    marcadorDetectado = false;
-  });
-
-  document.addEventListener('DOMContentLoaded', () => {
-    cambiarAGrupo(0);
-  });
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', () => {
+        cambiarAGrupo(0);
+    });
 </script>
+
 
 </body>
 </html>
