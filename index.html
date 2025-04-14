@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Sistema AR - Grupos de Cubos</title>
@@ -13,6 +14,7 @@
             width: 100%;
             height: 100%;
         }
+
         .button-container {
             position: fixed;
             bottom: 20px;
@@ -28,6 +30,7 @@
             padding: 0;
             box-sizing: border-box;
         }
+
         .scene-button {
             background: rgba(0, 0, 0, 0.7);
             color: white;
@@ -40,9 +43,11 @@
             min-width: 100px;
             text-align: center;
         }
+
         .active-button {
             background: rgba(76, 175, 80, 0.8);
         }
+
         .status-indicator {
             position: fixed;
             top: 10px;
@@ -55,7 +60,7 @@
             font-family: Arial, sans-serif;
             font-size: 16px;
         }
-        
+
         /* Contenedor para botones de navegación */
         .navigation-container {
             position: fixed;
@@ -66,9 +71,10 @@
             flex-direction: column;
             gap: 10px;
             z-index: 999;
-            display: none; /* Oculto inicialmente */
+            display: none;
+            /* Oculto inicialmente */
         }
-        
+
         .lock-button {
             position: fixed;
             right: 20px;
@@ -82,7 +88,7 @@
             cursor: pointer;
             z-index: 999;
         }
-        
+
         .nav-button {
             width: 60px;
             height: 60px;
@@ -96,13 +102,13 @@
             justify-content: center;
             align-items: center;
         }
-        
+
         .nav-row {
             display: flex;
             justify-content: center;
             gap: 10px;
         }
-        
+
         /* Media query específico para celulares en orientación vertical */
         @media (max-width: 767px) and (orientation: portrait) {
             .button-container {
@@ -113,12 +119,13 @@
                 padding: 0;
                 margin: 0 auto;
             }
+
             .scene-button {
                 width: 250px;
                 max-width: 80%;
                 margin: 5px auto;
             }
-            
+
             .navigation-container {
                 right: auto;
                 bottom: 20px;
@@ -132,38 +139,39 @@
                 padding: 0 20px;
                 box-sizing: border-box;
             }
-            
+
             .nav-row {
                 flex-wrap: wrap;
                 justify-content: center;
             }
-            
+
             .nav-button {
                 width: 50px;
                 height: 50px;
                 font-size: 16px;
             }
-            
+
             .button-container {
                 bottom: 100px;
             }
         }
     </style>
 </head>
+
 <body>
     <!-- Indicador de estado -->
     <div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
-    
+
     <!-- Botón para fijar objetos -->
     <button id="lockButton" class="lock-button">Fijar Objetos</button>
-    
+
     <!-- Botones para cambiar escenas -->
     <div class="button-container">
         <button id="grupo1Button" class="scene-button active-button">Grupo 1</button>
         <button id="grupo2Button" class="scene-button">Grupo 2</button>
         <button id="grupo3Button" class="scene-button">Grupo 3</button>
     </div>
-    
+
     <!-- Controles de navegación -->
     <div id="navigationControls" class="navigation-container">
         <div class="nav-row">
@@ -182,45 +190,57 @@
             <button id="backwardButton" class="nav-button">-</button>
         </div>
     </div>
-    
+
     <!-- Una sola escena A-Frame -->
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;" vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;">
-        
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;"
+        vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;">
+
         <!-- Un solo marcador con múltiples grupos de cubos -->
         <a-marker id="miMarcador" type="pattern" url="zona1.patt" raycaster="objects: .clickable" emitevents="true">
-            
+
             <!-- Grupo 1: Dos cubos (rojo y azul) -->
             <a-entity id="grupo1" visible="true">
-                <a-box position="0 0.5 0" rotation="0 0 0" scale="1 1 1" material="color: red; opacity: 0.8"></a-box>
-                <a-box position="1.5 0.5 0" rotation="0 45 0" scale="0.7 0.7 0.7" material="color: blue; opacity: 0.8"></a-box>
+                <a-box position="0 0 0" rotation="0 0 0" scale="1 1 1" material="color: #f9c5c1"></a-box>
+                <a-box position="0 2 0" rotation="0 0 0" scale="1 1 1" material="color: #2bc558"></a-box>
+                <a-box position="2 0 0" rotation="0 0 0" scale="1 1 1" material="color: #a3f260"></a-box>
+                <a-box position="2 2 0" rotation="0 0 0" scale="1 1 1" material="color: #3ebac2"></a-box>
+                <a-box position="-2 0 0" rotation="0 0 0" scale="1 1 1" material="color: #7db570"></a-box>
+                <a-box position="-2 2 0" rotation="0 0 0" scale="1 1 1" material="color: #ce105c"></a-box>
             </a-entity>
-            
+
             <!-- Grupo 2: Tres cubos en formación triangular -->
             <a-entity id="grupo2" visible="false">
-                <a-box position="0 0.5 0" rotation="0 0 0" scale="0.8 0.8 0.8" material="color: green; opacity: 0.8"></a-box>
-                <a-box position="1 0.5 1" rotation="0 45 0" scale="0.8 0.8 0.8" material="color: yellow; opacity: 0.8"></a-box>
-                <a-box position="-1 0.5 1" rotation="0 -45 0" scale="0.8 0.8 0.8" material="color: purple; opacity: 0.8"></a-box>
+                <a-box position="0 0.5 0" rotation="0 0 0" scale="0.8 0.8 0.8"
+                    material="color: green; opacity: 0.8"></a-box>
+                <a-box position="1 0.5 1" rotation="0 45 0" scale="0.8 0.8 0.8"
+                    material="color: yellow; opacity: 0.8"></a-box>
+                <a-box position="-1 0.5 1" rotation="0 -45 0" scale="0.8 0.8 0.8"
+                    material="color: purple; opacity: 0.8"></a-box>
             </a-entity>
-            
+
             <!-- Grupo 3: Formación de torre -->
             <a-entity id="grupo3" visible="false">
-                <a-box position="0 0.25 0" rotation="0 0 0" scale="1.2 0.5 1.2" material="color: orange; opacity: 0.8"></a-box>
-                <a-box position="0 0.75 0" rotation="0 45 0" scale="0.9 0.5 0.9" material="color: cyan; opacity: 0.8"></a-box>
-                <a-box position="0 1.25 0" rotation="0 22.5 0" scale="0.6 0.5 0.6" material="color: pink; opacity: 0.8"></a-box>
-                <a-box position="0 1.75 0" rotation="0 0 0" scale="0.3 0.5 0.3" material="color: white; opacity: 0.8"></a-box>
+                <a-box position="0 0.25 0" rotation="0 0 0" scale="1.2 0.5 1.2"
+                    material="color: orange; opacity: 0.8"></a-box>
+                <a-box position="0 0.75 0" rotation="0 45 0" scale="0.9 0.5 0.9"
+                    material="color: cyan; opacity: 0.8"></a-box>
+                <a-box position="0 1.25 0" rotation="0 22.5 0" scale="0.6 0.5 0.6"
+                    material="color: pink; opacity: 0.8"></a-box>
+                <a-box position="0 1.75 0" rotation="0 0 0" scale="0.3 0.5 0.3"
+                    material="color: white; opacity: 0.8"></a-box>
             </a-entity>
-            
+
         </a-marker>
-        
+
         <!-- Contenedor para objetos fijados -->
         <a-entity id="objetosFijados" position="0 0 -3" rotation="0 0 0" visible="false">
             <!-- Los objetos se clonarán aquí cuando se fijen -->
         </a-entity>
-        
+
         <!-- Cámara con cursor -->
         <a-entity camera look-controls></a-entity>
     </a-scene>
-    
+
     <script>
         // Referencias a elementos DOM
         const statusIndicator = document.getElementById('statusIndicator');
@@ -234,7 +254,7 @@
         const lockButton = document.getElementById('lockButton');
         const navigationControls = document.getElementById('navigationControls');
         const objetosFijados = document.getElementById('objetosFijados');
-        
+
         // Botones de navegación
         const upButton = document.getElementById('upButton');
         const downButton = document.getElementById('downButton');
@@ -243,42 +263,42 @@
         const forwardButton = document.getElementById('forwardButton');
         const backwardButton = document.getElementById('backwardButton');
         const rotateButton = document.getElementById('rotateButton');
-        
+
         // Configuración de grupos
         const grupos = [
             { element: grupo1, button: grupo1Button, nombre: 'Cubos Rojo y Azul' },
             { element: grupo2, button: grupo2Button, nombre: 'Triángulo Verde' },
             { element: grupo3, button: grupo3Button, nombre: 'Torre Multicolor' }
         ];
-        
+
         let grupoActualIndex = 0;
         let objetosFijos = false;
-        
+
         // Función para cambiar entre grupos
         function cambiarAGrupo(index) {
             // Si los objetos están fijados, cambiar la visibilidad en los objetos fijados
             if (objetosFijos) {
                 for (let i = 0; i < grupos.length; i++) {
-                    objetosFijados.querySelector(`#grupo${i+1}-fijado`).setAttribute('visible', i === index);
+                    objetosFijados.querySelector(`#grupo${i + 1}-fijado`).setAttribute('visible', i === index);
                 }
             } else {
                 // Ocultar todos los grupos
                 grupos.forEach((grupo, i) => {
                     grupo.element.setAttribute('visible', 'false');
                 });
-                
+
                 // Mostrar el grupo seleccionado
                 grupos[index].element.setAttribute('visible', 'true');
             }
-            
+
             // Actualizar botones y estado
             grupos.forEach((grupo, i) => {
                 grupo.button.classList.remove('active-button');
             });
-            
+
             grupos[index].button.classList.add('active-button');
             grupoActualIndex = index;
-            
+
             // Actualizar el indicador
             if (objetosFijos) {
                 statusIndicator.textContent = `Objetos fijados - ${grupos[index].nombre}`;
@@ -286,21 +306,21 @@
                 statusIndicator.textContent = `Buscando marcador... (${grupos[index].nombre})`;
             }
         }
-        
+
         // Detectar cuando se encuentra el marcador
         marker.addEventListener('markerFound', () => {
             if (!objetosFijos) {
                 statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
             }
         });
-        
+
         // Detectar cuando se pierde el marcador
         marker.addEventListener('markerLost', () => {
             if (!objetosFijos) {
                 statusIndicator.textContent = `Buscando marcador... (${grupos[grupoActualIndex].nombre})`;
             }
         });
-        
+
         // Función para fijar objetos
         lockButton.addEventListener('click', () => {
             if (!objetosFijos) {
@@ -308,36 +328,36 @@
                 if (marker.object3D.visible) {
                     // Fijar objetos
                     objetosFijos = true;
-                    
+
                     // Limpiar contenedor de objetos fijados
                     while (objetosFijados.firstChild) {
                         objetosFijados.removeChild(objetosFijados.firstChild);
                     }
-                    
+
                     // Clonar los grupos al contenedor de objetos fijados
                     for (let i = 0; i < grupos.length; i++) {
                         // Crear un contenedor para cada grupo
                         const grupoFijado = document.createElement('a-entity');
-                        grupoFijado.id = `grupo${i+1}-fijado`;
+                        grupoFijado.id = `grupo${i + 1}-fijado`;
                         grupoFijado.setAttribute('visible', i === grupoActualIndex);
-                        
+
                         // Clonar el HTML del grupo original
                         grupoFijado.innerHTML = grupos[i].element.innerHTML;
-                        
+
                         // Agregar al contenedor de objetos fijados
                         objetosFijados.appendChild(grupoFijado);
                     }
-                    
+
                     // Mostrar el contenedor de objetos fijados
                     objetosFijados.setAttribute('visible', 'true');
-                    
+
                     // Mostrar controles de navegación
                     navigationControls.style.display = 'flex';
-                    
+
                     // Cambiar texto del botón
                     lockButton.textContent = 'Desfijar Objetos';
                     lockButton.style.background = 'rgba(0, 128, 0, 0.7)';
-                    
+
                     // Actualizar indicador de estado
                     statusIndicator.textContent = `Objetos fijados - ${grupos[grupoActualIndex].nombre}`;
                 } else {
@@ -347,22 +367,22 @@
             } else {
                 // Desfijar objetos
                 objetosFijos = false;
-                
+
                 // Ocultar objetos fijados
                 objetosFijados.setAttribute('visible', 'false');
-                
+
                 // Ocultar controles de navegación
                 navigationControls.style.display = 'none';
-                
+
                 // Cambiar texto del botón
                 lockButton.textContent = 'Fijar Objetos';
                 lockButton.style.background = 'rgba(255, 0, 0, 0.7)';
-                
+
                 // Restaurar visibilidad de los grupos originales
                 grupos.forEach((grupo, i) => {
                     grupo.element.setAttribute('visible', i === grupoActualIndex);
                 });
-                
+
                 // Actualizar indicador de estado
                 if (marker.object3D.visible) {
                     statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
@@ -371,59 +391,59 @@
                 }
             }
         });
-        
+
         // Variables para controlar la navegación
         const movementSpeed = 0.1;
         const rotationSpeed = 5;
-        
+
         // Controles de navegación
         upButton.addEventListener('click', () => {
             if (objetosFijos) {
                 objetosFijados.object3D.position.y += movementSpeed;
             }
         });
-        
+
         downButton.addEventListener('click', () => {
             if (objetosFijos) {
                 objetosFijados.object3D.position.y -= movementSpeed;
             }
         });
-        
+
         leftButton.addEventListener('click', () => {
             if (objetosFijos) {
                 objetosFijados.object3D.position.x -= movementSpeed;
             }
         });
-        
+
         rightButton.addEventListener('click', () => {
             if (objetosFijos) {
                 objetosFijados.object3D.position.x += movementSpeed;
             }
         });
-        
+
         forwardButton.addEventListener('click', () => {
             if (objetosFijos) {
                 objetosFijados.object3D.position.z -= movementSpeed;
             }
         });
-        
+
         backwardButton.addEventListener('click', () => {
             if (objetosFijos) {
                 objetosFijados.object3D.position.z += movementSpeed;
             }
         });
-        
+
         rotateButton.addEventListener('click', () => {
             if (objetosFijos) {
                 objetosFijados.object3D.rotation.y += THREE.Math.degToRad(rotationSpeed);
             }
         });
-        
+
         // Asignar eventos a los botones de grupos
         grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
         grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
         grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
-        
+
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
             // Empezar con el primer grupo
@@ -431,4 +451,5 @@
         });
     </script>
 </body>
+
 </html>
