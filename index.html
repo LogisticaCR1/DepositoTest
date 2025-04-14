@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Sistema AR - Grupos de Cubos</title>
+    <title>Sistema AR - Grupos de Cubos Permanentes</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -72,11 +72,32 @@
                 margin: 5px auto;
             }
         }
+        
+        /* Nuevo botón para alternar modo permanente */
+        .toggle-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid white;
+            padding: 8px 12px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 999;
+        }
+        .toggle-active {
+            background: rgba(76, 175, 80, 0.8);
+        }
     </style>
 </head>
 <body>
     <!-- Indicador de estado -->
     <div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
+    
+    <!-- Botón para alternar modo permanente -->
+    <button id="togglePermanent" class="toggle-button">Modo Permanente: OFF</button>
     
     <!-- Botones para cambiar escenas -->
     <div class="button-container">
@@ -114,6 +135,11 @@
             
         </a-marker>
         
+        <!-- Elementos para visualización permanente (fuera del marcador) -->
+        <a-entity id="permanentContainer" position="0 0 0">
+            <!-- Los objetos se clonarán aquí dinámicamente cuando estemos en modo permanente -->
+        </a-entity>
+        
         <!-- Cámara con cursor -->
         <a-entity camera></a-entity>
     </a-scene>
@@ -128,6 +154,13 @@
         const grupo1 = document.getElementById('grupo1');
         const grupo2 = document.getElementById('grupo2');
         const grupo3 = document.getElementById('grupo3');
+        const togglePermanentButton = document.getElementById('togglePermanent');
+        const permanentContainer = document.getElementById('permanentContainer');
+        
+        // Variables de estado
+        let modoPermanente = false;
+        let marcadorDetectado = false;
+        let ultimaPosicionMarcador = { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } };
         
         // Configuración de grupos
         const grupos = [
@@ -152,29 +185,122 @@
             grupos[grupoActualIndex].button.classList.add('active-button');
             
             // Actualizar el indicador
-            statusIndicator.textContent = `Mostrando: ${grupos[grupoActualIndex].nombre}`;
+            actualizarIndicadorEstado();
+            
+            // Si estamos en modo permanente, actualizar el contenido permanente
+            if (modoPermanente && marcadorDetectado) {
+                actualizarContenidoPermanente();
+            }
+        }
+        
+        // Función para actualizar el indicador de estado
+        function actualizarIndicadorEstado() {
+            let estado = marcadorDetectado ? "Marcador detectado" : "Buscando marcador...";
+            let modo = modoPermanente ? "PERMANENTE" : "";
+            statusIndicator.textContent = `${estado} - ${grupos[grupoActualIndex].nombre} ${modo}`;
+        }
+        
+        // Función para guardar la posición y rotación del marcador
+        function guardarPosicionMarcador() {
+            const markerEl = document.querySelector('a-marker');
+            if (markerEl) {
+                const position = markerEl.getAttribute('position');
+                const rotation = markerEl.getAttribute('rotation');
+                
+                ultimaPosicionMarcador = {
+                    position: { x: position.x, y: position.y, z: position.z },
+                    rotation: { x: rotation.x, y: rotation.y, z: rotation.z }
+                };
+            }
+        }
+        
+        // Función para actulaizar el contenido permanente
+        function actualizarContenidoPermanente() {
+            // Limpiar el contenedor permanente
+            while (permanentContainer.firstChild) {
+                permanentContainer.removeChild(permanentContainer.firstChild);
+            }
+            
+            // Clonar el grupo actual al contenedor permanente
+            const grupoActual = grupos[grupoActualIndex].element;
+            const clon = grupoActual.cloneNode(true);
+            clon.setAttribute('visible', 'true');
+            
+            // Aplicar la posición y rotación del marcador al contenedor permanente
+            permanentContainer.setAttribute('position', `${ultimaPosicionMarcador.position.x} ${ultimaPosicionMarcador.position.y} ${ultimaPosicionMarcador.position.z}`);
+            permanentContainer.setAttribute('rotation', `${ultimaPosicionMarcador.rotation.x} ${ultimaPosicionMarcador.rotation.y} ${ultimaPosicionMarcador.rotation.z}`);
+            
+            permanentContainer.appendChild(clon);
+        }
+        
+        // Función para alternar el modo permanente
+        function toggleModoPermanente() {
+            modoPermanente = !modoPermanente;
+            
+            // Actualizar el botón
+            togglePermanentButton.textContent = `Modo Permanente: ${modoPermanente ? 'ON' : 'OFF'}`;
+            togglePermanentButton.classList.toggle('toggle-active', modoPermanente);
+            
+            // Limpiar el contenedor permanente si desactivamos el modo
+            if (!modoPermanente) {
+                while (permanentContainer.firstChild) {
+                    permanentContainer.removeChild(permanentContainer.firstChild);
+                }
+            } 
+            // Actualizar contenido permanente si activamos el modo y el marcador está detectado
+            else if (marcadorDetectado) {
+                actualizarContenidoPermanente();
+            }
+            
+            actualizarIndicadorEstado();
         }
         
         // Detectar cuando se encuentra el marcador
         marker.addEventListener('markerFound', () => {
-            statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
+            marcadorDetectado = true;
+            actualizarIndicadorEstado();
+            
+            // Actualizar posición del marcador para el modo permanente
+            guardarPosicionMarcador();
+            
+            // Si estamos en modo permanente, actualizar contenido
+            if (modoPermanente) {
+                actualizarContenidoPermanente();
+            }
         });
         
         // Detectar cuando se pierde el marcador
         marker.addEventListener('markerLost', () => {
-            statusIndicator.textContent = `Buscando marcador... (${grupos[grupoActualIndex].nombre})`;
+            marcadorDetectado = false;
+            actualizarIndicadorEstado();
+            
+            // En modo permanente, los objetos permanecen visibles
+            // En modo normal, los objetos desaparecen con el marcador (comportamiento por defecto)
         });
         
         // Asignar eventos a los botones
         grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
         grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
         grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
+        togglePermanentButton.addEventListener('click', toggleModoPermanente);
         
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
             // Empezar con el primer grupo
             cambiarAGrupo(0);
         });
+        
+        // Actualizar la posición permanente periódicamente cuando el marcador está visible
+        setInterval(() => {
+            if (marcadorDetectado) {
+                guardarPosicionMarcador();
+                if (modoPermanente) {
+                    // Actualizar solo la posición y rotación, no regenerar todo
+                    permanentContainer.setAttribute('position', `${ultimaPosicionMarcador.position.x} ${ultimaPosicionMarcador.position.y} ${ultimaPosicionMarcador.position.z}`);
+                    permanentContainer.setAttribute('rotation', `${ultimaPosicionMarcador.rotation.x} ${ultimaPosicionMarcador.rotation.y} ${ultimaPosicionMarcador.rotation.z}`);
+                }
+            }
+        }, 100); // Actualizar cada 100ms
     </script>
 </body>
 </html>
