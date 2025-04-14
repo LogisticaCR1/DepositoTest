@@ -16,12 +16,17 @@
         .button-container {
             position: fixed;
             bottom: 20px;
+            left: 0;
+            right: 0;
             width: 100%;
             display: flex;
             justify-content: center;
+            align-items: center;
             gap: 20px;
             z-index: 999;
             flex-wrap: wrap;
+            padding: 0;
+            box-sizing: border-box;
         }
         .scene-button {
             background: rgba(0, 0, 0, 0.7);
@@ -31,7 +36,9 @@
             font-size: 18px;
             border-radius: 5px;
             cursor: pointer;
-            margin-bottom: 10px;
+            margin: 5px;
+            min-width: 100px;
+            text-align: center;
         }
         .active-button {
             background: rgba(76, 175, 80, 0.8);
@@ -47,6 +54,23 @@
             z-index: 999;
             font-family: Arial, sans-serif;
             font-size: 16px;
+        }
+        
+        /* Media query específico para celulares en orientación vertical */
+        @media (max-width: 767px) and (orientation: portrait) {
+            .button-container {
+                flex-direction: column;
+                align-items: center;
+                width: 100%;
+                gap: 10px;
+                padding: 0;
+                margin: 0 auto;
+            }
+            .scene-button {
+                width: 250px;
+                max-width: 80%;
+                margin: 5px auto;
+            }
         }
     </style>
 </head>
