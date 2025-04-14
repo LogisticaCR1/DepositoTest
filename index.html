@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Sistema AR - Objetos Persistentes</title>
+    <title>Sistema AR - Grupos de Cubos Permanentes</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -72,85 +72,32 @@
                 margin: 5px auto;
             }
         }
+        
+        /* Nuevo botón para alternar modo permanente */
+        .toggle-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid white;
+            padding: 8px 12px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 999;
+        }
+        .toggle-active {
+            background: rgba(76, 175, 80, 0.8);
+        }
     </style>
-    
-    <!-- Script para hacr que los objetos persistan después de la detección del marcador -->
-    <script>
-        // Componente personalizado para objetos persistentes
-        AFRAME.registerComponent('persistent-object', {
-            init: function() {
-                let el = this.el;
-                let markerEl = el.closest('a-marker');
-                let sceneEl = document.querySelector('a-scene');
-                
-                // Referencia para almacenar el clon en el mundo
-                this.worldClone = null;
-                
-                // Cuando se detecta el marcador
-                markerEl.addEventListener('markerFound', () => {
-                    // Si ya hemos creado un clon persistente, lo actualizamos
-                    if (this.worldClone) {
-                        sceneEl.removeChild(this.worldClone);
-                    }
-                    
-                    // Creamos un clon de la entidad
-                    this.worldClone = document.createElement('a-entity');
-                    
-                    // Clonamos hijos si los hay
-                    Array.from(el.children).forEach(child => {
-                        let childClone = child.cloneNode(true);
-                        this.worldClone.appendChild(childClone);
-                    });
-                    
-                    // Sincronizamos la posición y rotación global
-                    let worldPosition = new THREE.Vector3();
-                    let worldQuaternion = new THREE.Quaternion();
-                    let worldScale = new THREE.Vector3();
-                    
-                    el.object3D.updateMatrixWorld(true);
-                    el.object3D.matrixWorld.decompose(worldPosition, worldQuaternion, worldScale);
-                    
-                    this.worldClone.setAttribute('position', {
-                        x: worldPosition.x,
-                        y: worldPosition.y,
-                        z: worldPosition.z
-                    });
-                    
-                    // Convertimos el quaternion a euler para A-Frame
-                    let worldRotation = new THREE.Euler().setFromQuaternion(worldQuaternion);
-                    this.worldClone.setAttribute('rotation', {
-                        x: THREE.MathUtils.radToDeg(worldRotation.x),
-                        y: THREE.MathUtils.radToDeg(worldRotation.y),
-                        z: THREE.MathUtils.radToDeg(worldRotation.z)
-                    });
-                    
-                    // Escala
-                    this.worldClone.setAttribute('scale', {
-                        x: worldScale.x,
-                        y: worldScale.y,
-                        z: worldScale.z
-                    });
-                    
-                    // Sincronizamos visibilidad
-                    this.worldClone.setAttribute('visible', el.getAttribute('visible'));
-                    
-                    // Agregamos el clon a la escena global (fuera del marcador)
-                    sceneEl.appendChild(this.worldClone);
-                });
-                
-                // Cuando se actualiza la visibilidad del original, actualizamos el clon
-                this.el.addEventListener('componentchanged', (evt) => {
-                    if (evt.detail.name === 'visible' && this.worldClone) {
-                        this.worldClone.setAttribute('visible', el.getAttribute('visible'));
-                    }
-                });
-            }
-        });
-    </script>
 </head>
 <body>
     <!-- Indicador de estado -->
     <div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
+    
+    <!-- Botón para alternar modo permanente -->
+    <button id="togglePermanent" class="toggle-button">Modo Permanente: OFF</button>
     
     <!-- Botones para cambiar escenas -->
     <div class="button-container">
@@ -165,21 +112,21 @@
         <!-- Un solo marcador con múltiples grupos de cubos -->
         <a-marker id="miMarcador" type="pattern" url="zona1.patt" raycaster="objects: .clickable" emitevents="true">
             
-            <!-- Grupo 1: Dos cubos (rojo y azul) - Ahora con componente persistente -->
-            <a-entity id="grupo1" visible="true" persistent-object>
+            <!-- Grupo 1: Dos cubos (rojo y azul) -->
+            <a-entity id="grupo1" visible="true">
                 <a-box position="0 0.5 0" rotation="0 0 0" scale="1 1 1" material="color: red; opacity: 0.8"></a-box>
                 <a-box position="1.5 0.5 0" rotation="0 45 0" scale="0.7 0.7 0.7" material="color: blue; opacity: 0.8"></a-box>
             </a-entity>
             
-            <!-- Grupo 2: Tres cubos en formación triangular - Ahora con componente persistente -->
-            <a-entity id="grupo2" visible="false" persistent-object>
+            <!-- Grupo 2: Tres cubos en formación triangular -->
+            <a-entity id="grupo2" visible="false">
                 <a-box position="0 0.5 0" rotation="0 0 0" scale="0.8 0.8 0.8" material="color: green; opacity: 0.8"></a-box>
                 <a-box position="1 0.5 1" rotation="0 45 0" scale="0.8 0.8 0.8" material="color: yellow; opacity: 0.8"></a-box>
                 <a-box position="-1 0.5 1" rotation="0 -45 0" scale="0.8 0.8 0.8" material="color: purple; opacity: 0.8"></a-box>
             </a-entity>
             
-            <!-- Grupo 3: Formación de torre - Ahora con componente persistente -->
-            <a-entity id="grupo3" visible="false" persistent-object>
+            <!-- Grupo 3: Formación de torre -->
+            <a-entity id="grupo3" visible="false">
                 <a-box position="0 0.25 0" rotation="0 0 0" scale="1.2 0.5 1.2" material="color: orange; opacity: 0.8"></a-box>
                 <a-box position="0 0.75 0" rotation="0 45 0" scale="0.9 0.5 0.9" material="color: cyan; opacity: 0.8"></a-box>
                 <a-box position="0 1.25 0" rotation="0 22.5 0" scale="0.6 0.5 0.6" material="color: pink; opacity: 0.8"></a-box>
@@ -187,6 +134,11 @@
             </a-entity>
             
         </a-marker>
+        
+        <!-- Elementos para visualización permanente (fuera del marcador) -->
+        <a-entity id="permanentContainer" position="0 0 0">
+            <!-- Los objetos se clonarán aquí dinámicamente cuando estemos en modo permanente -->
+        </a-entity>
         
         <!-- Cámara con cursor -->
         <a-entity camera></a-entity>
@@ -202,6 +154,13 @@
         const grupo1 = document.getElementById('grupo1');
         const grupo2 = document.getElementById('grupo2');
         const grupo3 = document.getElementById('grupo3');
+        const togglePermanentButton = document.getElementById('togglePermanent');
+        const permanentContainer = document.getElementById('permanentContainer');
+        
+        // Variables de estado
+        let modoPermanente = false;
+        let marcadorDetectado = false;
+        let ultimaPosicionMarcador = { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } };
         
         // Configuración de grupos
         const grupos = [
@@ -211,8 +170,6 @@
         ];
         
         let grupoActualIndex = 0;
-        let marcadorDetectado = false;
-        let marcadorEncontradoAlMenosUnaVez = false;
         
         // Función para cambiar entre grupos
         function cambiarAGrupo(index) {
@@ -229,46 +186,121 @@
             
             // Actualizar el indicador
             actualizarIndicadorEstado();
+            
+            // Si estamos en modo permanente, actualizar el contenido permanente
+            if (modoPermanente && marcadorDetectado) {
+                actualizarContenidoPermanente();
+            }
         }
         
         // Función para actualizar el indicador de estado
         function actualizarIndicadorEstado() {
-            let mensaje;
-            
-            if (marcadorEncontradoAlMenosUnaVez) {
-                mensaje = marcadorDetectado 
-                    ? `Marcador detectado - ${grupos[grupoActualIndex].nombre}` 
-                    : `Objetos persistentes - ${grupos[grupoActualIndex].nombre} (mueve alrededor para ver)`;
-            } else {
-                mensaje = "Buscando marcador... Apunta a tu marcador una vez";
+            let estado = marcadorDetectado ? "Marcador detectado" : "Buscando marcador...";
+            let modo = modoPermanente ? "PERMANENTE" : "";
+            statusIndicator.textContent = `${estado} - ${grupos[grupoActualIndex].nombre} ${modo}`;
+        }
+        
+        // Función para guardar la posición y rotación del marcador
+        function guardarPosicionMarcador() {
+            const markerEl = document.querySelector('a-marker');
+            if (markerEl) {
+                const position = markerEl.getAttribute('position');
+                const rotation = markerEl.getAttribute('rotation');
+                
+                ultimaPosicionMarcador = {
+                    position: { x: position.x, y: position.y, z: position.z },
+                    rotation: { x: rotation.x, y: rotation.y, z: rotation.z }
+                };
+            }
+        }
+        
+        // Función para actulaizar el contenido permanente
+        function actualizarContenidoPermanente() {
+            // Limpiar el contenedor permanente
+            while (permanentContainer.firstChild) {
+                permanentContainer.removeChild(permanentContainer.firstChild);
             }
             
-            statusIndicator.textContent = mensaje;
+            // Clonar el grupo actual al contenedor permanente
+            const grupoActual = grupos[grupoActualIndex].element;
+            const clon = grupoActual.cloneNode(true);
+            clon.setAttribute('visible', 'true');
+            
+            // Aplicar la posición y rotación del marcador al contenedor permanente
+            permanentContainer.setAttribute('position', `${ultimaPosicionMarcador.position.x} ${ultimaPosicionMarcador.position.y} ${ultimaPosicionMarcador.position.z}`);
+            permanentContainer.setAttribute('rotation', `${ultimaPosicionMarcador.rotation.x} ${ultimaPosicionMarcador.rotation.y} ${ultimaPosicionMarcador.rotation.z}`);
+            
+            permanentContainer.appendChild(clon);
+        }
+        
+        // Función para alternar el modo permanente
+        function toggleModoPermanente() {
+            modoPermanente = !modoPermanente;
+            
+            // Actualizar el botón
+            togglePermanentButton.textContent = `Modo Permanente: ${modoPermanente ? 'ON' : 'OFF'}`;
+            togglePermanentButton.classList.toggle('toggle-active', modoPermanente);
+            
+            // Limpiar el contenedor permanente si desactivamos el modo
+            if (!modoPermanente) {
+                while (permanentContainer.firstChild) {
+                    permanentContainer.removeChild(permanentContainer.firstChild);
+                }
+            } 
+            // Actualizar contenido permanente si activamos el modo y el marcador está detectado
+            else if (marcadorDetectado) {
+                actualizarContenidoPermanente();
+            }
+            
+            actualizarIndicadorEstado();
         }
         
         // Detectar cuando se encuentra el marcador
         marker.addEventListener('markerFound', () => {
             marcadorDetectado = true;
-            marcadorEncontradoAlMenosUnaVez = true;
             actualizarIndicadorEstado();
+            
+            // Actualizar posición del marcador para el modo permanente
+            guardarPosicionMarcador();
+            
+            // Si estamos en modo permanente, actualizar contenido
+            if (modoPermanente) {
+                actualizarContenidoPermanente();
+            }
         });
         
         // Detectar cuando se pierde el marcador
         marker.addEventListener('markerLost', () => {
             marcadorDetectado = false;
             actualizarIndicadorEstado();
+            
+            // En modo permanente, los objetos permanecen visibles
+            // En modo normal, los objetos desaparecen con el marcador (comportamiento por defecto)
         });
         
         // Asignar eventos a los botones
         grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
         grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
         grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
+        togglePermanentButton.addEventListener('click', toggleModoPermanente);
         
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
             // Empezar con el primer grupo
             cambiarAGrupo(0);
         });
+        
+        // Actualizar la posición permanente periódicamente cuando el marcador está visible
+        setInterval(() => {
+            if (marcadorDetectado) {
+                guardarPosicionMarcador();
+                if (modoPermanente) {
+                    // Actualizar solo la posición y rotación, no regenerar todo
+                    permanentContainer.setAttribute('position', `${ultimaPosicionMarcador.position.x} ${ultimaPosicionMarcador.position.y} ${ultimaPosicionMarcador.position.z}`);
+                    permanentContainer.setAttribute('rotation', `${ultimaPosicionMarcador.rotation.x} ${ultimaPosicionMarcador.rotation.y} ${ultimaPosicionMarcador.rotation.z}`);
+                }
+            }
+        }, 100); // Actualizar cada 100ms
     </script>
 </body>
 </html>
