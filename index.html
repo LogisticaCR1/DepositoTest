@@ -1,129 +1,346 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <!-- Mantener misma sección head del código original -->
+    <meta charset="utf-8">
+    <title>Sistema AR - Objetos Flotantes en Pantalla</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-        /* Añadir nuevos estilos para controles de movimiento */
-        .movement-controls {
+        body {
+            margin: 0;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+        .button-container {
             position: fixed;
-            bottom: 180px;
+            bottom: 20px;
             left: 0;
             right: 0;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
-            padding: 10px;
-            z-index: 1000;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            z-index: 999;
+            flex-wrap: wrap;
+            padding: 0;
+            box-sizing: border-box;
         }
-
-        .movement-button {
+        .scene-button {
             background: rgba(0, 0, 0, 0.7);
             color: white;
-            border: 1px solid #fff;
-            padding: 15px;
-            border-radius: 50%;
+            border: 2px solid white;
+            padding: 10px 15px;
+            font-size: 18px;
+            border-radius: 5px;
             cursor: pointer;
-            touch-action: manipulation;
+            margin: 5px;
+            min-width: 100px;
+            text-align: center;
         }
-
-        .axis-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        .active-button {
+            background: rgba(76, 175, 80, 0.8);
+        }
+        .status-indicator {
             position: fixed;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 999;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+        }
+        
+        /* Media query específico para celulares en orientación vertical */
+        @media (max-width: 767px) and (orientation: portrait) {
+            .button-container {
+                flex-direction: column;
+                align-items: center;
+                width: 100%;
+                gap: 10px;
+                padding: 0;
+                margin: 0 auto;
+            }
+            .scene-button {
+                width: 250px;
+                max-width: 80%;
+                margin: 5px auto;
+            }
+        }
+        
+        /* Botón para fijar objetos a la pantalla */
+        .fix-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid white;
+            padding: 8px 12px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 999;
+        }
+        .fixed {
+            background: rgba(33, 150, 243, 0.8);
         }
     </style>
 </head>
 <body>
+    <!-- Indicador de estado -->
     <div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
     
-    <!-- Nuevos controles de movimiento -->
-    <div class="movement-controls">
-        <button class="movement-button" id="btnLeft">←</button>
-        <button class="movement-button" id="btnForward">↑</button>
-        <button class="movement-button" id="btnRight">→</button>
-        <button class="movement-button" id="btnBackward">↓</button>
-    </div>
-
-    <div class="axis-controls">
-        <button class="movement-button" id="btnUp">↑</button>
-        <button class="movement-button" id="btnDown">↓</button>
-    </div>
-
-    <!-- Botones originales de grupos -->
+    <!-- Botón para fijar objetos -->
+    <button id="fixButton" class="fix-button">FIJAR A PANTALLA</button>
+    
+    <!-- Botones para cambiar escenas -->
     <div class="button-container">
-        <!-- Mantener botones originales de grupos -->
+        <button id="grupo1Button" class="scene-button active-button">Grupo 1</button>
+        <button id="grupo2Button" class="scene-button">Grupo 2</button>
+        <button id="grupo3Button" class="scene-button">Grupo 3</button>
     </div>
-
-    <a-scene embedded arjs>
-        <a-marker id="miMarcador" type="pattern" url="zona1.patt">
-            <!-- Modificar grupos para incluir posición inicial -->
-            <a-entity id="grupo1" visible="true">
-                <a-box data-initial-position="0 0.5 0" ...></a-box>
-                <a-box data-initial-position="1.5 0.5 0" ...></a-box>
-            </a-entity>
-            <!-- Repetir para otros grupos -->
-        </a-marker>
-        <a-entity camera></a-entity>
-    </a-scene>
-
-    <script>
-        // Nuevas variables de control
-        let movimientoHabilitado = false;
-        const STEP_SIZE = 0.1; // Tamaño del paso de movimiento
-
-        // Función para bloquear/mover objetos
-        function actualizarPosicion(direccion) {
-            const grupoActual = grupos[grupoActualIndex].element;
-            const objetos = grupoActual.querySelectorAll('[data-initial-position]');
+    
+    <!-- Una sola escena A-Frame -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;" vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;">
+        
+        <!-- Un solo marcador con múltiples grupos de cubos -->
+        <a-marker id="miMarcador" type="pattern" url="zona1.patt" raycaster="objects: .clickable" emitevents="true">
             
-            objetos.forEach(obj => {
-                const pos = obj.getAttribute('position');
-                const initialPos = obj.dataset.initialPosition.split(' ').map(Number);
+            <!-- Grupo 1: Dos cubos (rojo y azul) -->
+            <a-entity id="grupo1" visible="true">
+                <a-box position="0 0.5 0" rotation="0 0 0" scale="1 1 1" material="color: red; opacity: 0.8"></a-box>
+                <a-box position="1.5 0.5 0" rotation="0 45 0" scale="0.7 0.7 0.7" material="color: blue; opacity: 0.8"></a-box>
+            </a-entity>
+            
+            <!-- Grupo 2: Tres cubos en formación triangular -->
+            <a-entity id="grupo2" visible="false">
+                <a-box position="0 0.5 0" rotation="0 0 0" scale="0.8 0.8 0.8" material="color: green; opacity: 0.8"></a-box>
+                <a-box position="1 0.5 1" rotation="0 45 0" scale="0.8 0.8 0.8" material="color: yellow; opacity: 0.8"></a-box>
+                <a-box position="-1 0.5 1" rotation="0 -45 0" scale="0.8 0.8 0.8" material="color: purple; opacity: 0.8"></a-box>
+            </a-entity>
+            
+            <!-- Grupo 3: Formación de torre -->
+            <a-entity id="grupo3" visible="false">
+                <a-box position="0 0.25 0" rotation="0 0 0" scale="1.2 0.5 1.2" material="color: orange; opacity: 0.8"></a-box>
+                <a-box position="0 0.75 0" rotation="0 45 0" scale="0.9 0.5 0.9" material="color: cyan; opacity: 0.8"></a-box>
+                <a-box position="0 1.25 0" rotation="0 22.5 0" scale="0.6 0.5 0.6" material="color: pink; opacity: 0.8"></a-box>
+                <a-box position="0 1.75 0" rotation="0 0 0" scale="0.3 0.5 0.3" material="color: white; opacity: 0.8"></a-box>
+            </a-entity>
+            
+        </a-marker>
+        
+        <!-- Contenedor para objetos flotantes (pegados a la cámara) -->
+        <a-entity id="cameraContainer" position="0 0 -3">
+            <!-- Aquí se clonarán los objetos cuando se fijen a la cámara -->
+        </a-entity>
+        
+        <!-- Cámara con cursor -->
+        <a-entity camera>
+            <!-- Los objetos flotantes estarán vinculados a la cámara -->
+        </a-entity>
+    </a-scene>
+    
+    <script>
+        // Referencias a elementos DOM
+        const statusIndicator = document.getElementById('statusIndicator');
+        const marker = document.getElementById('miMarcador');
+        const grupo1Button = document.getElementById('grupo1Button');
+        const grupo2Button = document.getElementById('grupo2Button');
+        const grupo3Button = document.getElementById('grupo3Button');
+        const grupo1 = document.getElementById('grupo1');
+        const grupo2 = document.getElementById('grupo2');
+        const grupo3 = document.getElementById('grupo3');
+        const fixButton = document.getElementById('fixButton');
+        
+        // Variables de estado
+        let objetosFijos = false;
+        let marcadorDetectado = false;
+        
+        // Configuración de grupos
+        const grupos = [
+            { element: grupo1, button: grupo1Button, nombre: 'Cubos Rojo y Azul' },
+            { element: grupo2, button: grupo2Button, nombre: 'Triángulo Verde' },
+            { element: grupo3, button: grupo3Button, nombre: 'Torre Multicolor' }
+        ];
+        
+        let grupoActualIndex = 0;
+        
+        // Función para cambiar entre grupos
+        function cambiarAGrupo(index) {
+            // Ocultar todos los grupos
+            grupos.forEach((grupo, i) => {
+                grupo.element.setAttribute('visible', 'false');
+                grupo.button.classList.remove('active-button');
+            });
+            
+            // Mostrar el grupo seleccionado
+            grupoActualIndex = index;
+            grupos[grupoActualIndex].element.setAttribute('visible', 'true');
+            grupos[grupoActualIndex].button.classList.add('active-button');
+            
+            // Actualizar el indicador
+            actualizarIndicadorEstado();
+            
+            // Si los objetos están fijos, actualizar los objetos flotantes
+            if (objetosFijos) {
+                actualizarObjetosFlotantes();
+            }
+        }
+        
+        // Función para actualizar el indicador de estado
+        function actualizarIndicadorEstado() {
+            let estado;
+            
+            if (objetosFijos) {
+                estado = `OBJETOS FIJADOS - ${grupos[grupoActualIndex].nombre}`;
+            } else {
+                estado = marcadorDetectado ? 
+                    `Marcador detectado - ${grupos[grupoActualIndex].nombre}` : 
+                    "Buscando marcador...";
+            }
+            
+            statusIndicator.textContent = estado;
+        }
+        
+        // Función para fijar los objetos a la pantalla
+        function fijarObjetosAPantalla() {
+            if (!marcadorDetectado && !objetosFijos) {
+                alert("¡Necesitas detectar el marcador primero!");
+                return;
+            }
+            
+            objetosFijos = !objetosFijos;
+            
+            if (objetosFijos) {
+                // Fijar objetos a la pantalla
+                actualizarObjetosFlotantes();
                 
-                // Calcular nueva posición relativa
-                let newPos = {
-                    x: initialPos[0] + (pos.x - initialPos[0]),
-                    y: initialPos[1] + (pos.y - initialPos[1]),
-                    z: initialPos[2] + (pos.z - initialPos[2])
-                };
-
-                // Aplicar movimiento según dirección
-                switch(direccion) {
-                    case 'left': newPos.x -= STEP_SIZE; break;
-                    case 'right': newPos.x += STEP_SIZE; break;
-                    case 'forward': newPos.z -= STEP_SIZE; break;
-                    case 'backward': newPos.z += STEP_SIZE; break;
-                    case 'up': newPos.y += STEP_SIZE; break;
-                    case 'down': newPos.y -= STEP_SIZE; break;
-                }
-
-                obj.setAttribute('position', `${newPos.x} ${newPos.y} ${newPos.z}`);
+                // Ocultar grupos en el marcador ya que ahora son visibles en la pantalla
+                grupos.forEach(grupo => {
+                    grupo.element.setAttribute('visible', 'false');
+                });
+                
+                fixButton.textContent = "LIBERAR OBJETOS";
+                fixButton.classList.add('fixed');
+            } else {
+                // Limpiar objetos flotantes
+                limpiarObjetosFlotantes();
+                
+                // Mostrar solo el grupo actual en el marcador
+                grupos.forEach((grupo, i) => {
+                    grupo.element.setAttribute('visible', i === grupoActualIndex);
+                });
+                
+                fixButton.textContent = "FIJAR A PANTALLA";
+                fixButton.classList.remove('fixed');
+            }
+            
+            actualizarIndicadorEstado();
+        }
+        
+        // Función para obtener el contenedor de la cámara
+        function obtenerContenedorCamara() {
+            // Obtener la entidad de la cámara
+            const camera = document.querySelector('[camera]');
+            
+            // Si no existe un contenedor en la cámara, lo creamos
+            let container = document.getElementById('cameraContainer');
+            
+            if (!container) {
+                container = document.createElement('a-entity');
+                container.id = 'cameraContainer';
+                container.setAttribute('position', '0 0 -3');  // Posición frente a la cámara
+                camera.appendChild(container);
+            }
+            
+            return container;
+        }
+        
+        // Función para actualizar los objetos flotantes
+        function actualizarObjetosFlotantes() {
+            // Obtener el contenedor de la cámara
+            const container = obtenerContenedorCamara();
+            
+            // Limpiar el contenedor
+            limpiarObjetosFlotantes();
+            
+            // Crear clones de los objetos del grupo actual
+            const grupoActual = grupos[grupoActualIndex].element;
+            
+            // Clonar todos los cubos del grupo actual
+            Array.from(grupoActual.children).forEach((child, index) => {
+                const clone = document.createElement(child.tagName);
+                
+                // Copiar atributos
+                const position = child.getAttribute('position');
+                const rotation = child.getAttribute('rotation');
+                const scale = child.getAttribute('scale');
+                const material = child.getAttribute('material');
+                
+                // Ajustar la posición para que se vea centrada frente a la cámara
+                // Aplicamos los atributos copiados con pequeños ajustes para mejor visualización
+                clone.setAttribute('position', {
+                    x: position.x * 0.5,          // Reducimos escala para mejor visualización
+                    y: position.y * 0.5 - 0.5,    // Ajustamos altura
+                    z: position.z * 0.5 - 2       // Ajustamos profundidad
+                });
+                
+                clone.setAttribute('rotation', rotation);
+                clone.setAttribute('scale', {
+                    x: scale.x * 0.5,   // Reducimos tamaño para mejor visualización
+                    y: scale.y * 0.5,
+                    z: scale.z * 0.5
+                });
+                clone.setAttribute('material', material);
+                
+                // Añadir al contenedor
+                container.appendChild(clone);
             });
         }
-
-        // Event listeners para botones
-        document.getElementById('btnLeft').addEventListener('mousedown', () => actualizarPosicion('left'));
-        document.getElementById('btnRight').addEventListener('mousedown', () => actualizarPosicion('right'));
-        document.getElementById('btnForward').addEventListener('mousedown', () => actualizarPosicion('forward'));
-        document.getElementById('btnBackward').addEventListener('mousedown', () => actualizarPosicion('backward'));
-        document.getElementById('btnUp').addEventListener('mousedown', () => actualizarPosicion('up'));
-        document.getElementById('btnDown').addEventListener('mousedown', () => actualizarPosicion('down'));
-
-        // Bloquear actualización automática de posición
-        const marker = document.getElementById('miMarcador');
-        marker.addEventListener('markerFound', () => {
-            const objetos = document.querySelectorAll('[data-initial-position]');
-            objetos.forEach(obj => {
-                if(!obj.dataset.initialPositionSet) {
-                    const pos = obj.getAttribute('position');
-                    obj.dataset.initialPosition = `${pos.x} ${pos.y} ${pos.z}`;
-                    obj.dataset.initialPositionSet = true;
+        
+        // Función para limpiar los objetos flotantes
+        function limpiarObjetosFlotantes() {
+            const container = document.getElementById('cameraContainer');
+            
+            if (container) {
+                while (container.firstChild) {
+                    container.removeChild(container.firstChild);
                 }
-            });
+            }
+        }
+        
+        // Detectar cuando se encuentra el marcador
+        marker.addEventListener('markerFound', () => {
+            marcadorDetectado = true;
+            actualizarIndicadorEstado();
+        });
+        
+        // Detectar cuando se pierde el marcador
+        marker.addEventListener('markerLost', () => {
+            marcadorDetectado = false;
+            
+            // Solo actualizamos el estado si no están fijos los objetos
+            if (!objetosFijos) {
+                actualizarIndicadorEstado();
+            }
+        });
+        
+        // Asignar eventos a los botones
+        grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
+        grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
+        grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
+        fixButton.addEventListener('click', fijarObjetosAPantalla);
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            // Empezar con el primer grupo
+            cambiarAGrupo(0);
         });
     </script>
 </body>
