@@ -2,49 +2,155 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Sistema RA con Marcadores Independientes</title>
+    <title>Sistema AR - Grupos de Cubos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script>
-        AFRAME.registerComponent('marker-handler', {
-            init: function () {
-                const marker = this.el;
-                marker.addEventListener('markerFound', () => {
-                    const scene1 = document.getElementById('escena1');
-                    const scene2 = document.getElementById('escena2');
-                    if (marker.id === 'marker1') {
-                        scene1.setAttribute('visible', 'true');
-                        scene2.setAttribute('visible', 'false');
-                    } else if (marker.id === 'marker2') {
-                        scene1.setAttribute('visible', 'false');
-                        scene2.setAttribute('visible', 'true');
-                    }
-                });
-
-                marker.addEventListener('markerLost', () => {
-                    const scene1 = document.getElementById('escena1');
-                    const scene2 = document.getElementById('escena2');
-                    scene1.setAttribute('visible', 'false');
-                    scene2.setAttribute('visible', 'false');
-                });
-            }
-        });
-    </script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+        .button-container {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 999;
+            flex-wrap: wrap;
+        }
+        .scene-button {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid white;
+            padding: 10px 15px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .active-button {
+            background: rgba(76, 175, 80, 0.8);
+        }
+        .status-indicator {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 999;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+        }
+    </style>
 </head>
-<body style="margin: 0; overflow: hidden;">
-    <a-scene embedded arjs>
-        <a-marker id="marker1" type="pattern" url="zona1.patt" marker-handler>
-            <a-entity id="escena1" gltf-model="#modelo1" position="0 0 0" visible="false"></a-entity>
+<body>
+    <!-- Indicador de estado -->
+    <div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
+    
+    <!-- Botones para cambiar escenas -->
+    <div class="button-container">
+        <button id="grupo1Button" class="scene-button active-button">Grupo 1</button>
+        <button id="grupo2Button" class="scene-button">Grupo 2</button>
+        <button id="grupo3Button" class="scene-button">Grupo 3</button>
+    </div>
+    
+    <!-- Una sola escena A-Frame -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;" vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;">
+        
+        <!-- Un solo marcador con múltiples grupos de cubos -->
+        <a-marker id="miMarcador" type="pattern" url="markers/patron.patt" raycaster="objects: .clickable" emitevents="true">
+            
+            <!-- Grupo 1: Dos cubos (rojo y azul) -->
+            <a-entity id="grupo1" visible="true">
+                <a-box position="0 0.5 0" rotation="0 0 0" scale="1 1 1" material="color: red; opacity: 0.8"></a-box>
+                <a-box position="1.5 0.5 0" rotation="0 45 0" scale="0.7 0.7 0.7" material="color: blue; opacity: 0.8"></a-box>
+            </a-entity>
+            
+            <!-- Grupo 2: Tres cubos en formación triangular -->
+            <a-entity id="grupo2" visible="false">
+                <a-box position="0 0.5 0" rotation="0 0 0" scale="0.8 0.8 0.8" material="color: green; opacity: 0.8"></a-box>
+                <a-box position="1 0.5 1" rotation="0 45 0" scale="0.8 0.8 0.8" material="color: yellow; opacity: 0.8"></a-box>
+                <a-box position="-1 0.5 1" rotation="0 -45 0" scale="0.8 0.8 0.8" material="color: purple; opacity: 0.8"></a-box>
+            </a-entity>
+            
+            <!-- Grupo 3: Formación de torre -->
+            <a-entity id="grupo3" visible="false">
+                <a-box position="0 0.25 0" rotation="0 0 0" scale="1.2 0.5 1.2" material="color: orange; opacity: 0.8"></a-box>
+                <a-box position="0 0.75 0" rotation="0 45 0" scale="0.9 0.5 0.9" material="color: cyan; opacity: 0.8"></a-box>
+                <a-box position="0 1.25 0" rotation="0 22.5 0" scale="0.6 0.5 0.6" material="color: pink; opacity: 0.8"></a-box>
+                <a-box position="0 1.75 0" rotation="0 0 0" scale="0.3 0.5 0.3" material="color: white; opacity: 0.8"></a-box>
+            </a-entity>
+            
         </a-marker>
-
-        <a-marker id="marker2" type="pattern" url="zona2.patt" marker-handler>
-            <a-entity id="escena2" gltf-model="#modelo2" position="0 0 0" visible="false"></a-entity>
-        </a-marker>
-
-        <a-asset-item id="modelo1" src="modelo1.gltf"></a-asset-item>
-        <a-asset-item id="modelo2" src="modelo2.gltf"></a-asset-item>
-
+        
+        <!-- Cámara con cursor -->
         <a-entity camera></a-entity>
     </a-scene>
+    
+    <script>
+        // Referencias a elementos DOM
+        const statusIndicator = document.getElementById('statusIndicator');
+        const marker = document.getElementById('miMarcador');
+        const grupo1Button = document.getElementById('grupo1Button');
+        const grupo2Button = document.getElementById('grupo2Button');
+        const grupo3Button = document.getElementById('grupo3Button');
+        const grupo1 = document.getElementById('grupo1');
+        const grupo2 = document.getElementById('grupo2');
+        const grupo3 = document.getElementById('grupo3');
+        
+        // Configuración de grupos
+        const grupos = [
+            { element: grupo1, button: grupo1Button, nombre: 'Cubos Rojo y Azul' },
+            { element: grupo2, button: grupo2Button, nombre: 'Triángulo Verde' },
+            { element: grupo3, button: grupo3Button, nombre: 'Torre Multicolor' }
+        ];
+        
+        let grupoActualIndex = 0;
+        
+        // Función para cambiar entre grupos
+        function cambiarAGrupo(index) {
+            // Ocultar todos los grupos
+            grupos.forEach((grupo, i) => {
+                grupo.element.setAttribute('visible', 'false');
+                grupo.button.classList.remove('active-button');
+            });
+            
+            // Mostrar el grupo seleccionado
+            grupoActualIndex = index;
+            grupos[grupoActualIndex].element.setAttribute('visible', 'true');
+            grupos[grupoActualIndex].button.classList.add('active-button');
+            
+            // Actualizar el indicador
+            statusIndicator.textContent = `Mostrando: ${grupos[grupoActualIndex].nombre}`;
+        }
+        
+        // Detectar cuando se encuentra el marcador
+        marker.addEventListener('markerFound', () => {
+            statusIndicator.textContent = `Marcador detectado - ${grupos[grupoActualIndex].nombre}`;
+        });
+        
+        // Detectar cuando se pierde el marcador
+        marker.addEventListener('markerLost', () => {
+            statusIndicator.textContent = `Buscando marcador... (${grupos[grupoActualIndex].nombre})`;
+        });
+        
+        // Asignar eventos a los botones
+        grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
+        grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
+        grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            // Empezar con el primer grupo
+            cambiarAGrupo(0);
+        });
+    </script>
 </body>
 </html>
