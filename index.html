@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Sistema AR - Objetos Congelados en el Espacio</title>
+    <title>Sistema AR - Objetos Persistentes</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -72,32 +72,85 @@
                 margin: 5px auto;
             }
         }
-        
-        /* Botón para congelar los objetos */
-        .freeze-button {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: 2px solid white;
-            padding: 8px 12px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            z-index: 999;
-        }
-        .frozen {
-            background: rgba(33, 150, 243, 0.8);
-        }
     </style>
+    
+    <!-- Script para hacr que los objetos persistan después de la detección del marcador -->
+    <script>
+        // Componente personalizado para objetos persistentes
+        AFRAME.registerComponent('persistent-object', {
+            init: function() {
+                let el = this.el;
+                let markerEl = el.closest('a-marker');
+                let sceneEl = document.querySelector('a-scene');
+                
+                // Referencia para almacenar el clon en el mundo
+                this.worldClone = null;
+                
+                // Cuando se detecta el marcador
+                markerEl.addEventListener('markerFound', () => {
+                    // Si ya hemos creado un clon persistente, lo actualizamos
+                    if (this.worldClone) {
+                        sceneEl.removeChild(this.worldClone);
+                    }
+                    
+                    // Creamos un clon de la entidad
+                    this.worldClone = document.createElement('a-entity');
+                    
+                    // Clonamos hijos si los hay
+                    Array.from(el.children).forEach(child => {
+                        let childClone = child.cloneNode(true);
+                        this.worldClone.appendChild(childClone);
+                    });
+                    
+                    // Sincronizamos la posición y rotación global
+                    let worldPosition = new THREE.Vector3();
+                    let worldQuaternion = new THREE.Quaternion();
+                    let worldScale = new THREE.Vector3();
+                    
+                    el.object3D.updateMatrixWorld(true);
+                    el.object3D.matrixWorld.decompose(worldPosition, worldQuaternion, worldScale);
+                    
+                    this.worldClone.setAttribute('position', {
+                        x: worldPosition.x,
+                        y: worldPosition.y,
+                        z: worldPosition.z
+                    });
+                    
+                    // Convertimos el quaternion a euler para A-Frame
+                    let worldRotation = new THREE.Euler().setFromQuaternion(worldQuaternion);
+                    this.worldClone.setAttribute('rotation', {
+                        x: THREE.MathUtils.radToDeg(worldRotation.x),
+                        y: THREE.MathUtils.radToDeg(worldRotation.y),
+                        z: THREE.MathUtils.radToDeg(worldRotation.z)
+                    });
+                    
+                    // Escala
+                    this.worldClone.setAttribute('scale', {
+                        x: worldScale.x,
+                        y: worldScale.y,
+                        z: worldScale.z
+                    });
+                    
+                    // Sincronizamos visibilidad
+                    this.worldClone.setAttribute('visible', el.getAttribute('visible'));
+                    
+                    // Agregamos el clon a la escena global (fuera del marcador)
+                    sceneEl.appendChild(this.worldClone);
+                });
+                
+                // Cuando se actualiza la visibilidad del original, actualizamos el clon
+                this.el.addEventListener('componentchanged', (evt) => {
+                    if (evt.detail.name === 'visible' && this.worldClone) {
+                        this.worldClone.setAttribute('visible', el.getAttribute('visible'));
+                    }
+                });
+            }
+        });
+    </script>
 </head>
 <body>
     <!-- Indicador de estado -->
     <div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
-    
-    <!-- Botón para congelar objetos -->
-    <button id="freezeButton" class="freeze-button">CONGELAR OBJETOS</button>
     
     <!-- Botones para cambiar escenas -->
     <div class="button-container">
@@ -112,21 +165,21 @@
         <!-- Un solo marcador con múltiples grupos de cubos -->
         <a-marker id="miMarcador" type="pattern" url="zona1.patt" raycaster="objects: .clickable" emitevents="true">
             
-            <!-- Grupo 1: Dos cubos (rojo y azul) -->
-            <a-entity id="grupo1" visible="true">
+            <!-- Grupo 1: Dos cubos (rojo y azul) - Ahora con componente persistente -->
+            <a-entity id="grupo1" visible="true" persistent-object>
                 <a-box position="0 0.5 0" rotation="0 0 0" scale="1 1 1" material="color: red; opacity: 0.8"></a-box>
                 <a-box position="1.5 0.5 0" rotation="0 45 0" scale="0.7 0.7 0.7" material="color: blue; opacity: 0.8"></a-box>
             </a-entity>
             
-            <!-- Grupo 2: Tres cubos en formación triangular -->
-            <a-entity id="grupo2" visible="false">
+            <!-- Grupo 2: Tres cubos en formación triangular - Ahora con componente persistente -->
+            <a-entity id="grupo2" visible="false" persistent-object>
                 <a-box position="0 0.5 0" rotation="0 0 0" scale="0.8 0.8 0.8" material="color: green; opacity: 0.8"></a-box>
                 <a-box position="1 0.5 1" rotation="0 45 0" scale="0.8 0.8 0.8" material="color: yellow; opacity: 0.8"></a-box>
                 <a-box position="-1 0.5 1" rotation="0 -45 0" scale="0.8 0.8 0.8" material="color: purple; opacity: 0.8"></a-box>
             </a-entity>
             
-            <!-- Grupo 3: Formación de torre -->
-            <a-entity id="grupo3" visible="false">
+            <!-- Grupo 3: Formación de torre - Ahora con componente persistente -->
+            <a-entity id="grupo3" visible="false" persistent-object>
                 <a-box position="0 0.25 0" rotation="0 0 0" scale="1.2 0.5 1.2" material="color: orange; opacity: 0.8"></a-box>
                 <a-box position="0 0.75 0" rotation="0 45 0" scale="0.9 0.5 0.9" material="color: cyan; opacity: 0.8"></a-box>
                 <a-box position="0 1.25 0" rotation="0 22.5 0" scale="0.6 0.5 0.6" material="color: pink; opacity: 0.8"></a-box>
@@ -134,11 +187,6 @@
             </a-entity>
             
         </a-marker>
-        
-        <!-- Contenedor para los objetos congelados (en coordenadas del mundo) -->
-        <a-entity id="frozenContainer" position="0 0 0">
-            <!-- Los objetos congelados se clonarán aquí -->
-        </a-entity>
         
         <!-- Cámara con cursor -->
         <a-entity camera></a-entity>
@@ -154,13 +202,6 @@
         const grupo1 = document.getElementById('grupo1');
         const grupo2 = document.getElementById('grupo2');
         const grupo3 = document.getElementById('grupo3');
-        const freezeButton = document.getElementById('freezeButton');
-        const frozenContainer = document.getElementById('frozenContainer');
-        
-        // Variables de estado
-        let objetosCongelados = false;
-        let marcadorDetectado = false;
-        let worldTransform = null;
         
         // Configuración de grupos
         const grupos = [
@@ -170,6 +211,8 @@
         ];
         
         let grupoActualIndex = 0;
+        let marcadorDetectado = false;
+        let marcadorEncontradoAlMenosUnaVez = false;
         
         // Función para cambiar entre grupos
         function cambiarAGrupo(index) {
@@ -186,144 +229,45 @@
             
             // Actualizar el indicador
             actualizarIndicadorEstado();
-            
-            // Si los objetos están congelados, actualizar los objetos congelados
-            if (objetosCongelados && worldTransform) {
-                actualizarObjetosCongelados();
-            }
         }
         
         // Función para actualizar el indicador de estado
         function actualizarIndicadorEstado() {
-            let estado = marcadorDetectado ? "Marcador detectado" : "Buscando marcador...";
-            let modo = objetosCongelados ? "¡CONGELADO!" : "";
-            statusIndicator.textContent = `${estado} - ${grupos[grupoActualIndex].nombre} ${modo}`;
-        }
-        
-        // Función para obtener la transformación de mundo del marcador
-        function obtenerTransformacionMundo() {
-            // Necesitamos calcular la matriz de transformación mundo del marcador
-            const markerEl = document.querySelector('a-marker');
+            let mensaje;
             
-            if (markerEl && markerEl.object3D) {
-                // Actualizar la matriz del objeto 3D
-                markerEl.object3D.updateMatrixWorld(true);
-                
-                // Obtener la matriz de transformación mundial
-                const matrixWorld = markerEl.object3D.matrixWorld.clone();
-                
-                return {
-                    matrix: matrixWorld,
-                    position: new THREE.Vector3().setFromMatrixPosition(matrixWorld),
-                    quaternion: new THREE.Quaternion().setFromRotationMatrix(matrixWorld)
-                };
-            }
-            
-            return null;
-        }
-        
-        // Función para congelar los objetos en el espacio
-        function congelarObjetos() {
-            if (!marcadorDetectado) {
-                alert("¡Necesitas detectar el marcador primero!");
-                return;
-            }
-            
-            objetosCongelados = !objetosCongelados;
-            
-            if (objetosCongelados) {
-                // Guardar la transformación actual del mundo
-                worldTransform = obtenerTransformacionMundo();
-                
-                if (worldTransform) {
-                    actualizarObjetosCongelados();
-                    freezeButton.textContent = "DESCONGELAR";
-                    freezeButton.classList.add('frozen');
-                }
+            if (marcadorEncontradoAlMenosUnaVez) {
+                mensaje = marcadorDetectado 
+                    ? `Marcador detectado - ${grupos[grupoActualIndex].nombre}` 
+                    : `Objetos persistentes - ${grupos[grupoActualIndex].nombre} (mueve alrededor para ver)`;
             } else {
-                // Limpiar el contenedor congelado
-                while (frozenContainer.firstChild) {
-                    frozenContainer.removeChild(frozenContainer.firstChild);
-                }
-                
-                freezeButton.textContent = "CONGELAR OBJETOS";
-                freezeButton.classList.remove('frozen');
+                mensaje = "Buscando marcador... Apunta a tu marcador una vez";
             }
             
-            actualizarIndicadorEstado();
-        }
-        
-        // Función para actualizar los objetos congelados
-        function actualizarObjetosCongelados() {
-            // Limpiar el contenedor congelado
-            while (frozenContainer.firstChild) {
-                frozenContainer.removeChild(frozenContainer.firstChild);
-            }
-            
-            // Obtener el grupo actual
-            const grupoActual = grupos[grupoActualIndex].element;
-            
-            // Clonar todos los hijos del grupo (los cubos)
-            Array.from(grupoActual.children).forEach(child => {
-                // Crear un nuevo elemento con las mismas propiedades
-                const nuevoElemento = document.createElement(child.tagName);
-                
-                // Copiar atributos del elemento original
-                const posOriginal = child.getAttribute('position');
-                const rotOriginal = child.getAttribute('rotation');
-                const scaleOriginal = child.getAttribute('scale');
-                const materialOriginal = child.getAttribute('material');
-                
-                // Aplicar atributos al nuevo elemento
-                nuevoElemento.setAttribute('position', posOriginal);
-                nuevoElemento.setAttribute('rotation', rotOriginal);
-                nuevoElemento.setAttribute('scale', scaleOriginal);
-                nuevoElemento.setAttribute('material', materialOriginal);
-                
-                // Añadir el nuevo elemento al contenedor congelado
-                frozenContainer.appendChild(nuevoElemento);
-            });
-            
-            // Posicionar el contenedor congelado utilizando la matriz de transformación del mundo
-            frozenContainer.object3D.position.copy(worldTransform.position);
-            frozenContainer.object3D.quaternion.copy(worldTransform.quaternion);
+            statusIndicator.textContent = mensaje;
         }
         
         // Detectar cuando se encuentra el marcador
         marker.addEventListener('markerFound', () => {
             marcadorDetectado = true;
+            marcadorEncontradoAlMenosUnaVez = true;
             actualizarIndicadorEstado();
         });
         
         // Detectar cuando se pierde el marcador
         marker.addEventListener('markerLost', () => {
             marcadorDetectado = false;
-            
-            // Si no están congelados los objetos, actualizar el indicador
-            if (!objetosCongelados) {
-                actualizarIndicadorEstado();
-            }
+            actualizarIndicadorEstado();
         });
         
         // Asignar eventos a los botones
         grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
         grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
         grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
-        freezeButton.addEventListener('click', congelarObjetos);
         
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
             // Empezar con el primer grupo
             cambiarAGrupo(0);
-        });
-        
-        // EXTENSIÓN: Este código permite usar A-Frame con THREE.js directamente
-        // para operaciones más avanzadas como matrices de transformación
-        document.addEventListener('DOMContentLoaded', () => {
-            // Comprobar si THREE está disponible a través de AFRAME
-            if (typeof AFRAME !== 'undefined' && AFRAME.THREE) {
-                THREE = AFRAME.THREE;
-            }
         });
     </script>
 </body>
