@@ -72,16 +72,16 @@
 
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix;" vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;">
         <a-marker id="miMarcador" type="pattern" url="zona1.patt" raycaster="objects: .clickable" emitevents="true">
-            <a-entity id="grupo1">
+            <a-entity id="grupo1" visible="true">
                 <a-box position="0 0.5 0" rotation="0 0 0" scale="1 1 1" material="color: red; opacity: 0.8"></a-box>
                 <a-box position="1.5 0.5 0" rotation="0 45 0" scale="0.7 0.7 0.7" material="color: blue; opacity: 0.8"></a-box>
             </a-entity>
-            <a-entity id="grupo2">
+            <a-entity id="grupo2" visible="false">
                 <a-box position="0 0.5 0" rotation="0 0 0" scale="0.8 0.8 0.8" material="color: green; opacity: 0.8"></a-box>
                 <a-box position="1 0.5 1" rotation="0 45 0" scale="0.8 0.8 0.8" material="color: yellow; opacity: 0.8"></a-box>
                 <a-box position="-1 0.5 1" rotation="0 -45 0" scale="0.8 0.8 0.8" material="color: purple; opacity: 0.8"></a-box>
             </a-entity>
-            <a-entity id="grupo3">
+            <a-entity id="grupo3" visible="false">
                 <a-box position="0 0.25 0" rotation="0 0 0" scale="1.2 0.5 1.2" material="color: orange; opacity: 0.8"></a-box>
                 <a-box position="0 0.75 0" rotation="0 45 0" scale="0.9 0.5 0.9" material="color: cyan; opacity: 0.8"></a-box>
                 <a-box position="0 1.25 0" rotation="0 22.5 0" scale="0.6 0.5 0.6" material="color: pink; opacity: 0.8"></a-box>
@@ -115,9 +115,9 @@
         function cambiarAGrupo(index) {
             grupoActualIndex = index;
             grupos.forEach((grupo, i) => {
-                grupo.button.classList.remove('active-button');
+                grupo.element.setAttribute('visible', i === grupoActualIndex);
+                grupo.button.classList.toggle('active-button', i === grupoActualIndex);
             });
-            grupos[grupoActualIndex].button.classList.add('active-button');
             statusIndicator.textContent = `Mostrando: ${grupos[grupoActualIndex].nombre}`;
         }
 
