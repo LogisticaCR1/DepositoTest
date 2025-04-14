@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Sistema AR - Grupos de Cubos Permanentes</title>
+    <title>Sistema AR - Objetos Congelados en el Espacio</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -73,8 +73,8 @@
             }
         }
         
-        /* Nuevo botón para alternar modo permanente */
-        .toggle-button {
+        /* Botón para congelar los objetos */
+        .freeze-button {
             position: fixed;
             top: 10px;
             right: 10px;
@@ -87,8 +87,8 @@
             cursor: pointer;
             z-index: 999;
         }
-        .toggle-active {
-            background: rgba(76, 175, 80, 0.8);
+        .frozen {
+            background: rgba(33, 150, 243, 0.8);
         }
     </style>
 </head>
@@ -96,8 +96,8 @@
     <!-- Indicador de estado -->
     <div id="statusIndicator" class="status-indicator">Buscando marcador...</div>
     
-    <!-- Botón para alternar modo permanente -->
-    <button id="togglePermanent" class="toggle-button">Modo Permanente: OFF</button>
+    <!-- Botón para congelar objetos -->
+    <button id="freezeButton" class="freeze-button">CONGELAR OBJETOS</button>
     
     <!-- Botones para cambiar escenas -->
     <div class="button-container">
@@ -135,9 +135,9 @@
             
         </a-marker>
         
-        <!-- Elementos para visualización permanente (fuera del marcador) -->
-        <a-entity id="permanentContainer" position="0 0 0">
-            <!-- Los objetos se clonarán aquí dinámicamente cuando estemos en modo permanente -->
+        <!-- Contenedor para los objetos congelados (en coordenadas del mundo) -->
+        <a-entity id="frozenContainer" position="0 0 0">
+            <!-- Los objetos congelados se clonarán aquí -->
         </a-entity>
         
         <!-- Cámara con cursor -->
@@ -154,13 +154,13 @@
         const grupo1 = document.getElementById('grupo1');
         const grupo2 = document.getElementById('grupo2');
         const grupo3 = document.getElementById('grupo3');
-        const togglePermanentButton = document.getElementById('togglePermanent');
-        const permanentContainer = document.getElementById('permanentContainer');
+        const freezeButton = document.getElementById('freezeButton');
+        const frozenContainer = document.getElementById('frozenContainer');
         
         // Variables de estado
-        let modoPermanente = false;
+        let objetosCongelados = false;
         let marcadorDetectado = false;
-        let ultimaPosicionMarcador = { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 } };
+        let worldTransform = null;
         
         // Configuración de grupos
         const grupos = [
@@ -187,102 +187,129 @@
             // Actualizar el indicador
             actualizarIndicadorEstado();
             
-            // Si estamos en modo permanente, actualizar el contenido permanente
-            if (modoPermanente && marcadorDetectado) {
-                actualizarContenidoPermanente();
+            // Si los objetos están congelados, actualizar los objetos congelados
+            if (objetosCongelados && worldTransform) {
+                actualizarObjetosCongelados();
             }
         }
         
         // Función para actualizar el indicador de estado
         function actualizarIndicadorEstado() {
             let estado = marcadorDetectado ? "Marcador detectado" : "Buscando marcador...";
-            let modo = modoPermanente ? "PERMANENTE" : "";
+            let modo = objetosCongelados ? "¡CONGELADO!" : "";
             statusIndicator.textContent = `${estado} - ${grupos[grupoActualIndex].nombre} ${modo}`;
         }
         
-        // Función para guardar la posición y rotación del marcador
-        function guardarPosicionMarcador() {
+        // Función para obtener la transformación de mundo del marcador
+        function obtenerTransformacionMundo() {
+            // Necesitamos calcular la matriz de transformación mundo del marcador
             const markerEl = document.querySelector('a-marker');
-            if (markerEl) {
-                const position = markerEl.getAttribute('position');
-                const rotation = markerEl.getAttribute('rotation');
+            
+            if (markerEl && markerEl.object3D) {
+                // Actualizar la matriz del objeto 3D
+                markerEl.object3D.updateMatrixWorld(true);
                 
-                ultimaPosicionMarcador = {
-                    position: { x: position.x, y: position.y, z: position.z },
-                    rotation: { x: rotation.x, y: rotation.y, z: rotation.z }
+                // Obtener la matriz de transformación mundial
+                const matrixWorld = markerEl.object3D.matrixWorld.clone();
+                
+                return {
+                    matrix: matrixWorld,
+                    position: new THREE.Vector3().setFromMatrixPosition(matrixWorld),
+                    quaternion: new THREE.Quaternion().setFromRotationMatrix(matrixWorld)
                 };
             }
+            
+            return null;
         }
         
-        // Función para actulaizar el contenido permanente
-        function actualizarContenidoPermanente() {
-            // Limpiar el contenedor permanente
-            while (permanentContainer.firstChild) {
-                permanentContainer.removeChild(permanentContainer.firstChild);
+        // Función para congelar los objetos en el espacio
+        function congelarObjetos() {
+            if (!marcadorDetectado) {
+                alert("¡Necesitas detectar el marcador primero!");
+                return;
             }
             
-            // Clonar el grupo actual al contenedor permanente
-            const grupoActual = grupos[grupoActualIndex].element;
-            const clon = grupoActual.cloneNode(true);
-            clon.setAttribute('visible', 'true');
+            objetosCongelados = !objetosCongelados;
             
-            // Aplicar la posición y rotación del marcador al contenedor permanente
-            permanentContainer.setAttribute('position', `${ultimaPosicionMarcador.position.x} ${ultimaPosicionMarcador.position.y} ${ultimaPosicionMarcador.position.z}`);
-            permanentContainer.setAttribute('rotation', `${ultimaPosicionMarcador.rotation.x} ${ultimaPosicionMarcador.rotation.y} ${ultimaPosicionMarcador.rotation.z}`);
-            
-            permanentContainer.appendChild(clon);
-        }
-        
-        // Función para alternar el modo permanente
-        function toggleModoPermanente() {
-            modoPermanente = !modoPermanente;
-            
-            // Actualizar el botón
-            togglePermanentButton.textContent = `Modo Permanente: ${modoPermanente ? 'ON' : 'OFF'}`;
-            togglePermanentButton.classList.toggle('toggle-active', modoPermanente);
-            
-            // Limpiar el contenedor permanente si desactivamos el modo
-            if (!modoPermanente) {
-                while (permanentContainer.firstChild) {
-                    permanentContainer.removeChild(permanentContainer.firstChild);
+            if (objetosCongelados) {
+                // Guardar la transformación actual del mundo
+                worldTransform = obtenerTransformacionMundo();
+                
+                if (worldTransform) {
+                    actualizarObjetosCongelados();
+                    freezeButton.textContent = "DESCONGELAR";
+                    freezeButton.classList.add('frozen');
                 }
-            } 
-            // Actualizar contenido permanente si activamos el modo y el marcador está detectado
-            else if (marcadorDetectado) {
-                actualizarContenidoPermanente();
+            } else {
+                // Limpiar el contenedor congelado
+                while (frozenContainer.firstChild) {
+                    frozenContainer.removeChild(frozenContainer.firstChild);
+                }
+                
+                freezeButton.textContent = "CONGELAR OBJETOS";
+                freezeButton.classList.remove('frozen');
             }
             
             actualizarIndicadorEstado();
+        }
+        
+        // Función para actualizar los objetos congelados
+        function actualizarObjetosCongelados() {
+            // Limpiar el contenedor congelado
+            while (frozenContainer.firstChild) {
+                frozenContainer.removeChild(frozenContainer.firstChild);
+            }
+            
+            // Obtener el grupo actual
+            const grupoActual = grupos[grupoActualIndex].element;
+            
+            // Clonar todos los hijos del grupo (los cubos)
+            Array.from(grupoActual.children).forEach(child => {
+                // Crear un nuevo elemento con las mismas propiedades
+                const nuevoElemento = document.createElement(child.tagName);
+                
+                // Copiar atributos del elemento original
+                const posOriginal = child.getAttribute('position');
+                const rotOriginal = child.getAttribute('rotation');
+                const scaleOriginal = child.getAttribute('scale');
+                const materialOriginal = child.getAttribute('material');
+                
+                // Aplicar atributos al nuevo elemento
+                nuevoElemento.setAttribute('position', posOriginal);
+                nuevoElemento.setAttribute('rotation', rotOriginal);
+                nuevoElemento.setAttribute('scale', scaleOriginal);
+                nuevoElemento.setAttribute('material', materialOriginal);
+                
+                // Añadir el nuevo elemento al contenedor congelado
+                frozenContainer.appendChild(nuevoElemento);
+            });
+            
+            // Posicionar el contenedor congelado utilizando la matriz de transformación del mundo
+            frozenContainer.object3D.position.copy(worldTransform.position);
+            frozenContainer.object3D.quaternion.copy(worldTransform.quaternion);
         }
         
         // Detectar cuando se encuentra el marcador
         marker.addEventListener('markerFound', () => {
             marcadorDetectado = true;
             actualizarIndicadorEstado();
-            
-            // Actualizar posición del marcador para el modo permanente
-            guardarPosicionMarcador();
-            
-            // Si estamos en modo permanente, actualizar contenido
-            if (modoPermanente) {
-                actualizarContenidoPermanente();
-            }
         });
         
         // Detectar cuando se pierde el marcador
         marker.addEventListener('markerLost', () => {
             marcadorDetectado = false;
-            actualizarIndicadorEstado();
             
-            // En modo permanente, los objetos permanecen visibles
-            // En modo normal, los objetos desaparecen con el marcador (comportamiento por defecto)
+            // Si no están congelados los objetos, actualizar el indicador
+            if (!objetosCongelados) {
+                actualizarIndicadorEstado();
+            }
         });
         
         // Asignar eventos a los botones
         grupo1Button.addEventListener('click', () => cambiarAGrupo(0));
         grupo2Button.addEventListener('click', () => cambiarAGrupo(1));
         grupo3Button.addEventListener('click', () => cambiarAGrupo(2));
-        togglePermanentButton.addEventListener('click', toggleModoPermanente);
+        freezeButton.addEventListener('click', congelarObjetos);
         
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
@@ -290,17 +317,14 @@
             cambiarAGrupo(0);
         });
         
-        // Actualizar la posición permanente periódicamente cuando el marcador está visible
-        setInterval(() => {
-            if (marcadorDetectado) {
-                guardarPosicionMarcador();
-                if (modoPermanente) {
-                    // Actualizar solo la posición y rotación, no regenerar todo
-                    permanentContainer.setAttribute('position', `${ultimaPosicionMarcador.position.x} ${ultimaPosicionMarcador.position.y} ${ultimaPosicionMarcador.position.z}`);
-                    permanentContainer.setAttribute('rotation', `${ultimaPosicionMarcador.rotation.x} ${ultimaPosicionMarcador.rotation.y} ${ultimaPosicionMarcador.rotation.z}`);
-                }
+        // EXTENSIÓN: Este código permite usar A-Frame con THREE.js directamente
+        // para operaciones más avanzadas como matrices de transformación
+        document.addEventListener('DOMContentLoaded', () => {
+            // Comprobar si THREE está disponible a través de AFRAME
+            if (typeof AFRAME !== 'undefined' && AFRAME.THREE) {
+                THREE = AFRAME.THREE;
             }
-        }, 100); // Actualizar cada 100ms
+        });
     </script>
 </body>
 </html>
